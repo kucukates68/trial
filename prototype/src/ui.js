@@ -43,7 +43,7 @@
     G.cur = { level: G.lv.id, attempt: ++G.attemptNo, reason: reason, hint: cfg.hint, ghost: cfg.ghost, speed: cfg.speed, undo_budget: cfg.undo, pieces: G.level.P,
               t0: Date.now(), tokens: [], moves: [], outcome: null };
     LOG.attempts.push(G.cur); G.readyAt = now(); G.switches = 0; G.previews = []; saveLog();
-    setMsg('Bir renge bas: o rengin parçası (sabit şekil) tahtada nereye gideceğini gösterir. Hangisini ŞİMDİ göndermelisin?', 'info');
+    setMsg('Alttan bir parça seç: tam şekli ve kedinin üzerinde nereye gideceği görünür. Başka parçalara da bakabilirsin. Hangisini ŞİMDİ göndermelisin?', 'info');
     refresh();
   }
 
@@ -216,7 +216,7 @@
       setMsg('Kilitlendi: ' + p.sealed.length + ' boş hücreye artık girişten yol yok (kırmızı). Bu seviye bu hâliyle tamamlanamaz.' + (G.undoLeft > 0 ? ' Geri alabilirsin.' : ''), 'bad'); }
     else if (p.stuck) { G.status = 'stuck'; G.cur.stuck_at_move = G.cur.moves.length; G.cur.outcome = 'stuck'; G.cur.t1 = Date.now();
       setMsg('Sıkıştı: kalan parçalardan hiçbiri boş hücrelere yerleşemiyor. Bu seviye bu hâliyle tamamlanamaz.' + (G.undoLeft > 0 ? ' Geri alabilirsin.' : ''), 'bad'); }
-    else { G.status = 'idle'; setMsg('Sıradaki parça? ' + (cfg.hint ? 'Bir renge bir kez bas: nereye gideceğini göster; aynı renge/Gönder\'e tekrar bas: gönder.' : ''), 'info'); }
+    else { G.status = 'idle'; setMsg('Sıradaki parça? ' + (cfg.hint ? 'Bir parçaya bir kez bas: nereye gideceğini göster; aynı parçaya/Gönder\'e tekrar bas: gönder.' : ''), 'info'); }
     saveLog(); refresh();
   }
   function select(pi) {
@@ -258,21 +258,20 @@
   function toast(t) { var e = $('toast'); e.textContent = t; e.classList.add('show'); clearTimeout(toastTimer); toastTimer = setTimeout(function () { e.classList.remove('show'); }, 1600); }
   function nextOfColour(ci, st) { var L = G.level, r = -1; L.pieces.forEach(function (p) { if (r < 0 && p.col === ci && !(st || G.st).used[p.i]) r = p.i; }); return r; }
   function buildHand(seen, idle) {
-    var L = G.level, hand = $('hand'), opts = L.options(seen), sel = G.selected >= 0 ? L.pieces[G.selected].col : -1;
-    var key = G.lv.id + '#' + G.attemptNo + '|' + L.letters.map(function (x, ci) { var pi = nextOfColour(ci, seen); return pi < 0 ? 'u' : (opts[pi] ? 'f' + pi : 'x' + pi); }).join('') + '|' + sel + '|' + (idle ? 1 : 0);
+    var L = G.level, hand = $('hand'), opts = L.options(seen);
+    var key = G.lv.id + '#' + G.attemptNo + '|' + L.pieces.map(function (p) { return seen.used[p.i] ? 'u' : (opts[p.i] ? 'f' : 'x'); }).join('') + '|' + G.selected + '|' + (idle ? 1 : 0);
     if (key === G.handSig) return; G.handSig = key;
     hand.innerHTML = '';
-    L.letters.forEach(function (x, ci) {
-      var pi = nextOfColour(ci, seen), left = L.pieces.filter(function (p) { return p.col === ci && !seen.used[p.i]; }).length;
-      var b = document.createElement('button'), cv = document.createElement('canvas'), ok = pi >= 0 && !!opts[pi];
-      b.className = 'pcard' + (sel === ci ? ' sel' : '') + (ok ? '' : ' nofit'); b.id = 'cb' + ci; b.style.background = col(ci); b.style.color = isDark(col(ci)) ? '#fff' : '#111';
-      b.disabled = !idle || !ok;
-      var p0 = pi >= 0 ? L.pieces[pi] : L.pieces.filter(function (p) { return p.col === ci; })[0];
-      drawPiece(cv, p0, 16, isDark(col(ci)) ? '#ffffff88' : '#00000055'); b.appendChild(cv);
-      var t = document.createElement('span'); t.textContent = (ci + 1) + ' · ' + G.palette.names[ci]; b.appendChild(t);
-      var sm = document.createElement('small'); sm.textContent = p0.cells.length + ' hücre · kalan ' + left + ' parça' + (pi >= 0 && !ok ? ' · yerleşemez' : ''); b.appendChild(sm);
-      b.addEventListener('click', function () { if (pi >= 0) select(pi); }); hand.appendChild(b);
+    L.pieces.forEach(function (p) {
+      if (seen.used[p.i]) return;
+      var b = document.createElement('button'), cv = document.createElement('canvas'), ok = !!opts[p.i], n = p.cells.length, c0 = col(p.col);
+      b.className = 'pcard' + (G.selected === p.i ? ' sel' : '') + (ok ? '' : ' nofit'); b.id = 'pc' + p.i; b.dataset.i = p.i; b.style.background = mix(c0, '#ffffff', 0.35); b.style.color = '#222';
+      b.disabled = !idle || !ok; b.title = G.palette.names[p.col] + ' · ' + n + ' hücre' + (ok ? '' : ' · şu an yerleşemez');
+      drawPiece(cv, p, 14, c0); b.appendChild(cv);
+      var sm = document.createElement('small'); sm.textContent = n + ' hücre' + (ok ? '' : ' ✕'); b.appendChild(sm);
+      b.addEventListener('click', function () { select(p.i); }); hand.appendChild(b);
     });
+    if (!hand.children.length) hand.innerHTML = '<span class="meta">parça kalmadı</span>';
   }
   function refresh() {
     var L = G.level; if (!L) return;
@@ -364,7 +363,7 @@
   window.addEventListener('resize', layout);
   window.addEventListener('keydown', function (e) {
     if (e.target && /select|input|textarea/i.test(e.target.tagName)) return;
-    if (e.key >= '1' && e.key <= '9') { var pi = nextOfColour(parseInt(e.key, 10) - 1); if (pi >= 0) select(pi); }
+    if (e.key >= '0' && e.key <= '9') { var avail = G.level.pieces.filter(function (p) { return !G.st.used[p.i]; }), p = avail[(e.key === '0' ? 10 : parseInt(e.key, 10)) - 1]; if (p) select(p.i); }
     else if (e.key === 'Enter' || e.key === ' ') { if (G.selected >= 0) { e.preventDefault(); send(G.selected); } }
     else if (e.key === 'z' || e.key === 'Z') undo();
     else if (e.key === 'r' || e.key === 'R') newAttempt('restart');
@@ -378,6 +377,8 @@
     select: function (x) { select(pidx(x)); },
     state: function () { return { status: G.status, filled: G.level.filledCount(G.st.filled), n: G.level.n, waves: G.history.length, level: G.lv.id, sealed: G.sealedShown.length, selected: G.selected,
                                   left: G.level.remainingPieces(G.st), undoLeft: G.undoLeft, opt: G.opt ? G.opt.cells.length : 0 }; },
+    previewCells: function () { return G.opt ? G.opt.cells.slice().sort(function (a, b) { return a - b; }) : null; },
+    destCells: function () { return G.dest ? G.dest.cells.slice().sort(function (a, b) { return a - b; }) : null; },
     restart: function () { newAttempt('restart'); }, loadLevel: loadLevel, downloadLog: downloadLog, getLog: function () { return LOG; }, runParity: runParity,
     setCfg: function (o) { for (var k in o) cfg[k] = o[k]; fillSelectors(); newAttempt('restart'); }, undo: undo, nextLevel: nextLevel
   };

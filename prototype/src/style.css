@@ -26,7 +26,7 @@ footer#controls { display:flex; flex-wrap:wrap; gap:10px; align-items:stretch; j
 #hand { display:flex; gap:8px; flex-wrap:wrap; justify-content:center; align-items:stretch; max-width:100%; }
 .pcard { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px; min-width:62px; padding:6px 8px; border-radius:12px; border:3px solid #0006; background:var(--panel2); color:var(--ink); }
 .pcard small { color:var(--mute); font-size:11px; } .pcard.sel { outline:4px solid var(--acc); outline-offset:2px; transform:translateY(-3px); }
-.pcard { min-width:150px; font-weight:700; } .pcard small { color:inherit; opacity:.85; font-weight:500; }
+.pcard { min-width:58px; font-weight:600; } .pcard small { color:inherit; opacity:.85; font-weight:500; }
 .pcard.nofit { opacity:.4; } .pcard canvas { display:block; }
 #selBox { display:flex; align-items:center; gap:10px; margin:6px 0; min-height:30px; } #selShape { flex:none; background:#0d1018; border-radius:8px; padding:2px; }
 #sendBtn { background:var(--acc); color:#111; font-weight:700; border:0; padding:0 18px; border-radius:12px; } #undoBtn { border-radius:12px; }
