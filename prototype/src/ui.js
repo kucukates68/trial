@@ -43,7 +43,7 @@
     G.cur = { level: G.lv.id, attempt: ++G.attemptNo, reason: reason, hint: cfg.hint, ghost: cfg.ghost, speed: cfg.speed, undo_budget: cfg.undo, pieces: G.level.P,
               t0: Date.now(), tokens: [], moves: [], outcome: null };
     LOG.attempts.push(G.cur); G.readyAt = now(); G.switches = 0; G.previews = []; saveLog();
-    setMsg('Alttan bir parça seç: tam şekli ve kedinin üzerinde nereye gideceği görünür. Başka parçalara da bakabilirsin. Hangisini ŞİMDİ göndermelisin?', 'info');
+    setMsg('Elindeki 3 parçadan birine bas: kedinin üzerinde nereye gideceği görünür (göndermez). Üçünü de karşılaştır: hangisini ŞİMDİ göndermelisin?', 'info');
     refresh();
   }
 
@@ -257,21 +257,22 @@
   var toastTimer = 0;
   function toast(t) { var e = $('toast'); e.textContent = t; e.classList.add('show'); clearTimeout(toastTimer); toastTimer = setTimeout(function () { e.classList.remove('show'); }, 1600); }
   function nextOfColour(ci, st) { var L = G.level, r = -1; L.pieces.forEach(function (p) { if (r < 0 && p.col === ci && !(st || G.st).used[p.i]) r = p.i; }); return r; }
+  // EL: her zaman en fazla 3 kart — renk başına 1 slot. Slot, o rengin level verisindeki SIRADAKİ parçasını gösterir; gönderilen kartın yerine yalnız o slot yenilenir.
+  function handPieces(st) { var out = []; G.level.letters.forEach(function (x, ci) { var pi = nextOfColour(ci, st); if (pi >= 0) out.push(pi); }); return out; }
   function buildHand(seen, idle) {
-    var L = G.level, hand = $('hand'), opts = L.options(seen);
-    var key = G.lv.id + '#' + G.attemptNo + '|' + L.pieces.map(function (p) { return seen.used[p.i] ? 'u' : (opts[p.i] ? 'f' : 'x'); }).join('') + '|' + G.selected + '|' + (idle ? 1 : 0);
+    var L = G.level, hand = $('hand'), opts = L.options(seen), hp = handPieces(seen);
+    var key = G.lv.id + '#' + G.attemptNo + '|' + hp.map(function (pi) { return pi + (opts[pi] ? 'f' : 'x'); }).join(',') + '|' + G.selected + '|' + (idle ? 1 : 0);
     if (key === G.handSig) return; G.handSig = key;
     hand.innerHTML = '';
-    L.pieces.forEach(function (p) {
-      if (seen.used[p.i]) return;
-      var b = document.createElement('button'), cv = document.createElement('canvas'), ok = !!opts[p.i], n = p.cells.length, c0 = col(p.col);
-      b.className = 'pcard' + (G.selected === p.i ? ' sel' : '') + (ok ? '' : ' nofit'); b.id = 'pc' + p.i; b.dataset.i = p.i; b.style.background = mix(c0, '#ffffff', 0.35); b.style.color = '#222';
-      b.disabled = !idle || !ok; b.title = G.palette.names[p.col] + ' · ' + n + ' hücre' + (ok ? '' : ' · şu an yerleşemez');
-      drawPiece(cv, p, 14, c0); b.appendChild(cv);
-      var sm = document.createElement('small'); sm.textContent = n + ' hücre' + (ok ? '' : ' ✕'); b.appendChild(sm);
-      b.addEventListener('click', function () { select(p.i); }); hand.appendChild(b);
+    hp.forEach(function (pi, slot) {
+      var p = L.pieces[pi], b = document.createElement('button'), cv = document.createElement('canvas'), ok = !!opts[pi], n = p.cells.length, c0 = col(p.col);
+      b.className = 'pcard' + (G.selected === pi ? ' sel' : '') + (ok ? '' : ' nofit'); b.id = 'slot' + slot; b.dataset.piece = p.id; b.dataset.i = pi;
+      b.style.background = mix(c0, '#ffffff', 0.45); b.style.borderColor = c0; b.disabled = !idle || !ok; b.title = G.palette.names[p.col] + ' · ' + n + ' hücre' + (ok ? '' : ' · şu an yerleşemez');
+      var box2 = document.createElement('div'); box2.className = 'pshape'; drawPiece(cv, p, 22, c0); box2.appendChild(cv); b.appendChild(box2);
+      var sm = document.createElement('span'); sm.className = 'pn'; sm.textContent = (slot + 1) + ' · ' + G.palette.names[p.col] + ' · ' + n + ' hücre' + (ok ? '' : ' (yerleşemez)'); b.appendChild(sm);
+      b.addEventListener('click', function () { select(pi); }); hand.appendChild(b);
     });
-    if (!hand.children.length) hand.innerHTML = '<span class="meta">parça kalmadı</span>';
+    if (!hp.length) hand.innerHTML = '<span class="meta">parça kalmadı</span>';
   }
   function refresh() {
     var L = G.level; if (!L) return;
@@ -281,11 +282,7 @@
     $('lvlMeta').textContent = n + ' hücre · ' + L.K + ' renk · ' + L.P + ' parça · giriş hücresi: ' + L.entrances.length + (cfg.test ? '' : ' · ' + G.lv.id);
     $('progTxt').textContent = 'Yerleşen: ' + done + ' / ' + n + ' kutu (' + Math.round(100 * done / n) + '%) · gönderilen parça: ' + G.history.length + ' / ' + L.P;
     $('progBar').style.width = (100 * done / n) + '%';
-    var remP = L.counts.map(function () { return 0; }), fit = L.counts.map(function () { return 0; });
-    L.pieces.forEach(function (p) { if (!seen.used[p.i]) { remP[p.col]++; if (opts[p.i]) fit[p.col]++; } });
-    var rows = '<tr><th></th><th>Kalan kutu</th><th>Kalan parça</th><th>Şimdi yerleşebilen</th></tr>';
-    for (var i = 0; i < L.K; i++) rows += '<tr><td><span class="sw" style="background:' + col(i) + '"></span>' + G.palette.names[i] + '</td><td>' + rem[i] + '</td><td>' + remP[i] + '</td><td>' + fit[i] + (remP[i] - fit[i] > 0 ? ' <span class="warn">(' + (remP[i] - fit[i]) + ' yerleşemez)</span>' : '') + '</td></tr>';
-    $('stock').innerHTML = rows;
+    $('stock').innerHTML = '';   // renk stoğu karar alanında gösterilmez
     var hist = ''; G.history.forEach(function (h) { hist += '<i style="background:' + col(h.col) + '" title="' + G.palette.names[h.col] + ': ' + h.n + ' kutu">' + h.n + '</i>'; });
     $('history').innerHTML = hist || '<span class="meta">henüz yok</span>';
     buildHand(seen, idle);
@@ -363,7 +360,7 @@
   window.addEventListener('resize', layout);
   window.addEventListener('keydown', function (e) {
     if (e.target && /select|input|textarea/i.test(e.target.tagName)) return;
-    if (e.key >= '0' && e.key <= '9') { var avail = G.level.pieces.filter(function (p) { return !G.st.used[p.i]; }), p = avail[(e.key === '0' ? 10 : parseInt(e.key, 10)) - 1]; if (p) select(p.i); }
+    if (e.key >= '0' && e.key <= '9') { var hp = handPieces(G.st), pi = hp[parseInt(e.key, 10) - 1]; if (pi != null) select(pi); }
     else if (e.key === 'Enter' || e.key === ' ') { if (G.selected >= 0) { e.preventDefault(); send(G.selected); } }
     else if (e.key === 'z' || e.key === 'Z') undo();
     else if (e.key === 'r' || e.key === 'R') newAttempt('restart');
@@ -371,7 +368,7 @@
   if (window.ResizeObserver) new ResizeObserver(layout).observe($('boardWrap'));
 
   // otomasyon / araştırma API'si (tarayıcı testleri ve kayıt için). Parça = indeks ya da id ('P3')
-  function pidx(x) { if (typeof x === 'number') return x; var ci = G.level.letters.indexOf(x); if (ci >= 0) return nextOfColour(ci); var k = -1; G.level.pieces.forEach(function (p) { if (p.id === x) k = p.i; }); return k; }
+  function pidx(x) { if (typeof x === 'number') return x; if (handPieces(G.st).map(function (q) { return G.level.pieces[q].id; }).indexOf(x) < 0 && G.level.letters.indexOf(x) < 0) return -1; var ci = G.level.letters.indexOf(x); if (ci >= 0) return nextOfColour(ci); var k = -1; G.level.pieces.forEach(function (p) { if (p.id === x) k = p.i; }); return k; }
   window.CBGAME = {
     send: function (x) { var i = pidx(x); if (cfg.hint === 0) send(i); else { G.selected = -1; select(i); select(i); } },
     select: function (x) { select(pidx(x)); },

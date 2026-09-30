@@ -24,8 +24,8 @@ PLACE = [
     ('B1', 'B', [(3, 3), (3, 4), (3, 5), (4, 3)]),          # gövde: L
     ('B2', 'B', [(3, 6), (4, 4), (4, 5), (4, 6)]),          # gövde: J
     ('B3', 'B', [(5, 3), (5, 4), (5, 5), (5, 6)]),          # gövde alt: I
-    ('C1', 'C', [(3, 2), (4, 2), (5, 2), (6, 2), (6, 3)]),  # sol bacak + pati (L5)
-    ('C2', 'C', [(3, 7), (4, 7), (5, 7), (6, 7), (6, 6)]),  # sağ bacak + pati (J5)
+    ('C1', 'C', [(3, 7), (4, 7), (5, 7), (6, 7), (6, 6)]),  # sağ bacak + pati (J5)  — el sırasında pembenin ilk parçası
+    ('C2', 'C', [(3, 2), (4, 2), (5, 2), (6, 2), (6, 3)]),  # sol bacak + pati (L5)  — sıradaki
 ]
 GRID = '\n'.join(CAT)
 cat_cells = {(r, c): ch for r, row in enumerate(CAT) for c, ch in enumerate(row) if ch in 'ABC'}
