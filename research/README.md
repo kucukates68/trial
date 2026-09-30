@@ -23,6 +23,7 @@ Oyuncu miktar seçmez; W level parametresidir. Ana deneyler 3 renk, A/B deneyi 3
 | `make_human_test_set.py`, `human_test/` | 32 seviyelik insan testi seti (2 ısınma + A anında / B gecikmeli (A ile eşleştirilmiş) / C zarfa yakın), `levels.json`, `level_cards.md`, `shortlist.csv`, `PROTOCOL.md`. |
 | `human_test_oracle.py` | insan oturum kayıtlarını çözücü gerçeğiyle etiketler (safe/latent/sealed, gözlenen gecikme). |
 | `measure_grid.py` | herhangi bir ızgarayı (örn. 244 hücrelik gerçek kedi) tüm metriklerle ölçer. |
+| `parity.py`, `human_test/PARITY.md`, `human_test/conformance_vectors.json` | solver ↔ prototip eşliği: ızgara farkı, test vektörleri (32 seviye, 99 vaka), iz karşılaştırma + fark tanısı. |
 | `tests/test_dominators.py` | canlı dar boğaz (baskınlık) hesabının kaba kuvvetle doğrulaması (0 uyuşmazlık). |
 | `results/phase2_per_level.csv.gz` | seviye-başı çıktı (48 sütun: dalga, anlamlı/kritik/zorunlu/riskli, deadlock horizon, path pressure, ABC, filler, regret, greedy, ...). |
 | `export_results.py`, `fix_bigints.py` | jsonl → csv.gz; büyük tamsayıları JSON-güvenli yapar. |
@@ -33,7 +34,7 @@ Oyuncu miktar seçmez; W level parametresidir. Ana deneyler 3 renk, A/B deneyi 3
 ```
 pip install numpy pandas scipy statsmodels scikit-learn
 python3 tests/test_engine_equivalence.py        # motor doğrulaması (0 uyuşmazlık beklenir)
-python3 tests/test_dominators.py && python3 tests/test_oracle.py
+python3 tests/test_dominators.py && python3 tests/test_oracle.py && python3 tests/test_parity.py
 python3 run_experiments.py broad                # 4320 aday, ~1 dk (4 çekirdek) -> results/broad.jsonl
 python3 fix_bigints.py && python3 export_results.py
 python3 add_dep_descriptors.py && python3 add_order_descriptors.py
