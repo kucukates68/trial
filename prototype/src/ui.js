@@ -28,7 +28,7 @@
   function mix(a, b, t) { var x = rgb(a), y = rgb(b); return 'rgb(' + Math.round(x[0] + (y[0] - x[0]) * t) + ',' + Math.round(x[1] + (y[1] - x[1]) * t) + ',' + Math.round(x[2] + (y[2] - x[2]) * t) + ')'; }
   function col(i) { return G.palette.colors[i]; }
   function isDark(h) { var c = rgb(h); return (c[0] * 299 + c[1] * 587 + c[2] * 114) / 1000 < 90; }
-  var FLOOR = '#46516a', GHOST_BASE = '#cfd6e4';   // koyu zemin: hayalet (henüz boş) hedef hücreler öne çıkar
+  var PAPER = '#eef1f6', GHOST_BASE = '#eef1f6';   // tek bütün, temiz zemin; yürüme yolları/duvarlar/hücre sınırları görünmez
 
   // ---------------------------------------------------------------- seviye / deneme
   function loadLevel(id) {
@@ -80,15 +80,17 @@
     });
     ctx.stroke();
   }
+  function rrect(x, y, w, h, r) { ctx.beginPath(); ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r); ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath(); }
   function draw() {
     var t = now(), L = G.level; if (!L) return; var s = G.s, w = L.w;
     ctx.setTransform(G.dpr, 0, 0, G.dpr, 0, 0); ctx.clearRect(0, 0, G.cw, G.ch);
     ctx.fillStyle = '#10141d'; ctx.fillRect(0, 0, G.cw, G.ch);
-    for (var r = 0; r < L.h; r++) for (var c = 0; c < w; c++) {
-      var i = r * w + c, k = L.kind[i], x = G.ox + c * s, y = G.oy + r * s;
-      if (k === 1 || k === 3) { ctx.fillStyle = FLOOR; ctx.fillRect(x, y, s, s); ctx.fillStyle = 'rgba(0,0,0,.10)'; if ((r + c) % 2) ctx.fillRect(x, y, s, s); }
-      else if (k === 2) { ctx.fillStyle = '#f2c230'; ctx.fillRect(x, y, s, s); ctx.fillStyle = '#222'; for (var q = -s; q < s; q += s / 2) { ctx.beginPath(); ctx.moveTo(x + q, y + s); ctx.lineTo(x + q + s / 4, y + s); ctx.lineTo(x + q + s / 4 + s, y); ctx.lineTo(x + q + s, y); ctx.fill(); } }
-    }
+    // GÖRSEL: tahta tek parça düz zemin. Mantıksal grid/yol (duvar, zemin, giriş) çizilmez; yalnız hedef figür görünür.
+    var pad = s * 0.7; ctx.fillStyle = PAPER; rrect(G.ox - pad, G.oy - pad, w * s + pad * 2, L.h * s + pad * 2, s * 0.6); ctx.fill();
+    L.entrances.forEach(function (e) {   // giriş: zeminin kenarında küçük sarı işaret (koridor değil)
+      var d = outward(e); if (!d) return; var ex = cx(e), ey = cy(e), q = s * 0.3;
+      ctx.fillStyle = '#ffb703'; ctx.beginPath(); ctx.moveTo(ex - d[0] * s * 0.5 - d[1] * q, ey - d[1] * s * 0.5 + d[0] * q); ctx.lineTo(ex - d[0] * s * 0.5 + d[1] * q, ey - d[1] * s * 0.5 - d[0] * q); ctx.lineTo(ex + d[0] * s * 0.05, ey + d[1] * s * 0.05); ctx.fill();
+    });
     drawDepot(t);
     var sealedSet = {}, pvSealed = {};
     G.sealedShown.forEach(function (ti) { sealedSet[ti] = 1; });
@@ -97,10 +99,11 @@
       var tg = L.targets[ti], x0 = G.ox + tg.c * s, y0 = G.oy + tg.r * s, color = col(tg.col);
       if (G.visual[ti]) { var age = t - (G.pops[ti] || -9); box(x0, y0, s, color, age < 0.28 ? 0.35 * (1 - age / 0.28) : 0); }
       else {
-        ctx.fillStyle = cfg.ghost ? mix(color, GHOST_BASE, 0.45) : '#aab2c2'; ctx.fillRect(x0 + 1, y0 + 1, s - 2, s - 2);
-        ctx.strokeStyle = 'rgba(0,0,0,.35)'; ctx.lineWidth = 1; ctx.strokeRect(x0 + 1.5, y0 + 1.5, s - 3, s - 3);
+        ctx.fillStyle = cfg.ghost ? mix(color, GHOST_BASE, 0.5) : '#c3cad8'; ctx.fillRect(x0 - 0.25, y0 - 0.25, s + 0.5, s + 0.5);   // dikişsiz: hücre sınırı yok
       }
     }
+    var allT = []; for (var tt = 0; tt < L.n; tt++) allT.push(tt);
+    outline(allT, 'rgba(40,50,80,.35)', Math.max(1, s * 0.05));   // figürün siluet çerçevesi
     // ÖNİZLEME: seçili parçanın gideceği TÜM hücreler, hafif yanıp sönen hayalet (parça rengi) + birleşik çerçeve
     if (G.opt && G.status === 'idle') {
       var pc = col(G.level.pieces[G.selected].col), blink = 0.5 + 0.18 * Math.sin(t * 5.5);
@@ -147,6 +150,13 @@
       var p = Math.min(1, (t - w.depart) / w.travel), steps = w.path.length - 1, px, py;
       if (steps <= 0) { px = cx(w.path[0]); py = cy(w.path[0]); }
       else { var f = p * steps, i = Math.min(steps - 1, Math.floor(f)), u = f - i; px = cx(w.path[i]) + (cx(w.path[i + 1]) - cx(w.path[i])) * u; py = cy(w.path[i]) + (cy(w.path[i + 1]) - cy(w.path[i])) * u; }
+      if (w.state === 0 && steps > 0) {   // kısa ömürlü hafif ışık izi (kalıcı yol çizgisi yok)
+        var f2 = p * steps, tr0 = Math.max(0, f2 - 2.5), i0 = Math.floor(tr0);
+        ctx.save(); ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.strokeStyle = col(w.color); ctx.globalAlpha = 0.22; ctx.lineWidth = s * 0.28; ctx.beginPath();
+        ctx.moveTo(cx(w.path[i0]) + (cx(w.path[Math.min(steps, i0 + 1)]) - cx(w.path[i0])) * (tr0 - i0), cy(w.path[i0]) + (cy(w.path[Math.min(steps, i0 + 1)]) - cy(w.path[i0])) * (tr0 - i0));
+        for (var k2 = i0 + 1; k2 <= Math.floor(f2); k2++) ctx.lineTo(cx(w.path[k2]), cy(w.path[k2]));
+        ctx.lineTo(px, py); ctx.stroke(); ctx.restore();
+      }
       list.push({ w: w, x: px, y: py });
     });
     list.sort(function (a, b) { return a.y - b.y; });
