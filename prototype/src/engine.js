@@ -138,5 +138,100 @@
     return out;
   };
 
-  return { Level: Level, DIRS: DIRS };
+  /* ===================================================================================================
+   * PARÇA (PIECE) MEKANİĞİ — oyunun güncel çekirdeği.  Python referansı: prototype/tools/piece_ref.py
+   *   • Oyuncu yalnız hangi parçayı göndereceğini seçer; şekil, hücre sayısı ve renk oyun tarafından verilir.
+   *   • Bir parçanın olası konumu = öteleme; tüm hücreler boş + aynı renkli hedef + girişten erişilebilir olmalı.
+   *   • chooseTarget (AYRI FONKSİYON; ilk prototip kuralı, nihai tasarım değil):
+   *       min (dmin, dsum, satır, sütun) → "girişe en yakın erişilebilir uygun konum".
+   *   • Parça içi yerleşme sırası: (uzaklık azalan, satır, sütun). Parça atomik yerleşir; yerleşen hücreler kalıcı engel.
+   *   • Kayıp: boş hücreye yol kalmadı (sealed) YA DA kazanılmadı ve kalan hiçbir parçanın konumu yok (stuck).
+   * =================================================================================================== */
+  function PLevel(text, pieces) {
+    Level.call(this, text, 0);
+    var self = this;
+    this.pieces = pieces.map(function (p, i) {
+      var r0 = Infinity, c0 = Infinity; p.cells.forEach(function (x) { r0 = Math.min(r0, x[0]); c0 = Math.min(c0, x[1]); });
+      var cells = p.cells.map(function (x) { return [x[0] - r0, x[1] - c0]; }).sort(function (a, b) { return a[0] - b[0] || a[1] - b[1]; });
+      return { i: i, id: p.id, ch: p.ch, col: self.letters.indexOf(p.ch), cells: cells };
+    });
+    this.P = this.pieces.length;
+  }
+  PLevel.prototype = Object.create(Level.prototype); PLevel.prototype.constructor = PLevel;
+
+  PLevel.prototype.newState = function () { return { filled: this.newFilled(), used: new Uint8Array(this.P) }; };
+
+  // parçanın tüm olası konumları (mevcut dolu durumda)
+  PLevel.prototype.positions = function (filled, pi, bfsRes) {
+    var b = bfsRes || this.bfs(filled), p = this.pieces[pi], out = [], D = b.dist, w = this.w;
+    for (var r = 0; r < this.h; r++) for (var c = 0; c < w; c++) {
+      var ok = true, tis = [], dmin = 1e9, dsum = 0;
+      for (var k = 0; k < p.cells.length; k++) {
+        var rr = r + p.cells[k][0], cc = c + p.cells[k][1];
+        if (rr >= this.h || cc >= w) { ok = false; break; }
+        var cell = rr * w + cc, ti = this.tIdx[cell];
+        if (ti < 0 || this.targets[ti].col !== p.col || filled[ti] || D[cell] < 0) { ok = false; break; }
+        tis.push(ti); dsum += D[cell]; if (D[cell] < dmin) dmin = D[cell];
+      }
+      if (ok) out.push({ r: r, c: c, cells: tis, dmin: dmin, dsum: dsum });
+    }
+    return out;
+  };
+
+  // HEDEF KONUM KURALI (ilk prototip; değiştirilebilir tek nokta): girişe en yakın erişilebilir uygun konum.
+  PLevel.prototype.chooseTarget = function (filled, pi, bfsRes) {
+    var pos = this.positions(filled, pi, bfsRes), best = null;
+    for (var i = 0; i < pos.length; i++) {
+      var q = pos[i];
+      if (!best || q.dmin < best.dmin || (q.dmin === best.dmin && (q.dsum < best.dsum || (q.dsum === best.dsum && (q.r < best.r || (q.r === best.r && q.c < best.c)))))) best = q;
+    }
+    return best;
+  };
+
+  // her kullanılmamış parçanın şu anki hedefi (null = şu an yerleşemez)
+  PLevel.prototype.options = function (st) {
+    var b = this.bfs(st.filled), out = [];
+    for (var j = 0; j < this.P; j++) out.push(st.used[j] ? null : this.chooseTarget(st.filled, j, b));
+    return out;
+  };
+
+  // parçayı gönder: yerleşen hücreler sıralı (en derinden başla); yeni durum; kayıp/kazanma bayrakları
+  PLevel.prototype.place = function (st, pi) {
+    if (st.used[pi]) return null;
+    var b = this.bfs(st.filled, true), pos = this.chooseTarget(st.filled, pi, b); if (!pos) return null;
+    var T = this.targets, D = b.dist;
+    var order = pos.cells.slice().sort(function (a, c) { return (D[T[c].cell] - D[T[a].cell]) || (T[a].r - T[c].r) || (T[a].c - T[c].c); });
+    var filled = this.apply(st.filled, order), used = new Uint8Array(st.used); used[pi] = 1;
+    var b2 = this.bfs(filled), sealed = this.sealedCells(filled, b2), won = this.filledCount(filled) === this.n, stuck = false;
+    if (!won && !sealed.length) {
+      stuck = true;
+      for (var j = 0; j < this.P; j++) if (!used[j] && this.positions(filled, j, b2).length) { stuck = false; break; }
+    }
+    return { placed: order, pos: pos, state: { filled: filled, used: used }, sealed: sealed, won: won, stuck: stuck, bfs: b };
+  };
+
+  // animasyon rotaları: parça başı BFS ebeveynlerinden girişten hücreye en kısa yol
+  PLevel.prototype.routesFor = function (res) {
+    var b = res.bfs, self = this;
+    return res.placed.map(function (ti) { var path = [], cur = self.targets[ti].cell; while (cur >= 0) { path.push(cur); cur = b.parent[cur]; } return path.reverse(); });
+  };
+
+  PLevel.prototype.remainingPieces = function (st) { var n = 0; for (var j = 0; j < this.P; j++) if (!st.used[j]) n++; return n; };
+
+  // parity: parça indeks dizisini oynat (piece_ref.py `simulate` ile aynı çıktı biçimi)
+  PLevel.prototype.simulate = function (seq) {
+    var st = this.newState(), out = [], self = this;
+    for (var k = 0; k < seq.length; k++) {
+      var j = seq[k], opts = this.options(st), entry = { piece: j, options: opts.map(function (o) { return o ? [o.r, o.c] : null; }) };
+      var res = this.place(st, j);
+      if (!res) { entry.illegal = true; out.push(entry); break; }
+      entry.placed = res.placed.map(function (ti) { return [self.targets[ti].r, self.targets[ti].c]; });
+      entry.pos = [res.pos.r, res.pos.c]; entry.sealed = res.sealed.length > 0; entry.stuck = res.stuck; entry.won = res.won;
+      out.push(entry); st = res.state;
+      if (entry.sealed || entry.stuck || entry.won) break;
+    }
+    return out;
+  };
+
+  return { Level: Level, PLevel: PLevel, DIRS: DIRS };
 });

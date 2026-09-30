@@ -3,16 +3,16 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Renk Yerleştirme — prototip v0</title>
+<title>Renk Yerleştirme — parça prototipi</title>
 <style>/*__CSS__*/</style>
 </head>
 <body>
 <div id="app">
   <header id="top">
-    <div class="brand">Renk Yerleştirme<small>prototip v0</small></div>
+    <div class="brand">Renk Yerleştirme<small>prototip v1 · parça</small></div>
     <label id="lvlLbl">Seviye <select id="levelSel"></select></label>
-    <label>İpucu <select id="hintSel" title="0: yok · 1: dalganın dolduracağı hücreleri göster · 2: + bu dalga erişilemez yapacak hücreleri göster">
-      <option value="0">0 · yok</option><option value="1">1 · önizleme</option><option value="2">2 · önizleme + kilit uyarısı</option></select></label>
+    <label>İpucu <select id="hintSel" title="0: yok (tek dokunuş gönderir) · 1: parçanın hedefini göster · 2: + bu parça hücreleri erişilemez yapacaksa uyar">
+      <option value="0">0 · yok</option><option value="1">1 · hedef önizleme</option><option value="2">2 · önizleme + kilit uyarısı</option></select></label>
     <label>Hayalet renk <input type="checkbox" id="ghostChk" checked></label>
     <label>Hız <select id="speedSel"><option value="1">×1</option><option value="2">×2</option><option value="4">×4</option></select></label>
     <label id="undoLbl">Geri al hakkı <select id="undoSel"><option>0</option><option>1</option><option>2</option></select></label>
@@ -28,18 +28,19 @@
       <div><span id="progTxt"></span><div class="bar"><i id="progBar"></i></div></div>
       <table id="stock"></table>
       <div id="msg" class="info"></div>
-      <div class="meta">Gönderilen dalgalar:</div><div id="history"></div>
-      <details id="rules" open><summary>Kurallar (solver ile aynı)</summary><ul>
-        <li>Bir renge bas: işçiler <b>W kutu</b> taşır (sabit; sen miktar seçmezsin).</li>
-        <li>Kutular hedefte <b>arkadan öne</b> (girişe en uzaktan başlayarak) yerleşir.</li>
-        <li>Yerleşen kutu <b>kalıcı engeldir</b>; işçi yalnız boş hücrelerden yürür.</li>
-        <li>Bir boş hücreye girişten yol kalmazsa <b>seviye kaybedilir</b>.</li>
-        <li>Tüm hücreler dolunca resim tamamlanır.</li></ul></details>
+      <div id="selBox"><canvas id="selShape"></canvas><div id="selInfo" class="meta"></div></div>
+      <div class="meta">Gönderilen parçalar (kutu sayısı):</div><div id="history"></div>
+      <details id="rules" open><summary>Kurallar</summary><ul>
+        <li>Altta oyunun verdiği <b>parçalar</b> var (şekil, kutu sayısı, renk sabit). Sen yalnız <b>hangisini göndereceğini</b> seçersin.</li>
+        <li>Bir parçaya bas: <b>tam şekli</b> görünür ve tahtada <b>gideceği tüm hücreler</b> yanıp söner. Başka parçaya bakabilirsin.</li>
+        <li>Hedef konum: parçanın şu an yerleşebileceği yerler içinde <b>girişe en yakın erişilebilir</b> olan (ilk prototip kuralı).</li>
+        <li><b>Gönder</b>: işçiler parçanın kutularını tek grup olarak taşır; hepsi yerleşince kutular <b>kalıcı engel</b> olur.</li>
+        <li>Bir boş hücreye yol kalmazsa ya da kalan hiçbir parça yerleşemezse seviye <b>kaybedilir</b>. Tüm hücreler dolunca resim tamam.</li></ul></details>
       <details id="dev"><summary>Geliştirici / araştırma bilgisi</summary><div id="devInfo" class="meta"></div></details>
     </aside>
   </main>
   <footer id="controls">
-    <div id="colorBtns"></div>
+    <div id="hand"></div>
     <button id="sendBtn" title="Enter / Boşluk">Gönder</button>
     <button id="undoBtn" title="Z">Geri al</button>
   </footer>
