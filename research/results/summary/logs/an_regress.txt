@@ -1,0 +1,70 @@
+Korelasyon (yapısal tanımlayıcılar):
+                     cm_dominant  cm_entropy_norm  cm_clustering  comp_per_cell  ent_trans_per_cell  ent_wtrans_per_cell  ent_mean_run  deep_entropy  ent_maxdepth
+cm_dominant                 1.00            -0.98           0.08          -0.22               -0.29                -0.26          0.11         -0.36          0.02
+cm_entropy_norm            -0.98             1.00          -0.02           0.19                0.29                 0.26         -0.11          0.34         -0.01
+cm_clustering               0.08            -0.02           1.00          -0.90               -0.51                -0.52          0.27         -0.32          0.15
+comp_per_cell              -0.22             0.19          -0.90           1.00                0.53                 0.55         -0.24          0.29         -0.13
+ent_trans_per_cell         -0.29             0.29          -0.51           0.53                1.00                 0.96         -0.66          0.45         -0.05
+ent_wtrans_per_cell        -0.26             0.26          -0.52           0.55                0.96                 1.00         -0.62          0.51         -0.20
+ent_mean_run                0.11            -0.11           0.27          -0.24               -0.66                -0.62          1.00         -0.40          0.03
+deep_entropy               -0.36             0.34          -0.32           0.29                0.45                 0.51         -0.40          1.00         -0.29
+ent_maxdepth                0.02            -0.01           0.15          -0.13               -0.05                -0.20          0.03         -0.29          1.00
+
+== dens_risky  (hiyerarşik R², n=3921)
+  geometri: erişim ailesi + derinlik + boyut       R²=0.103  ΔR²=+0.103
+  + renk dağılımı (baskın, entropi)                R²=0.269  ΔR²=+0.167
+  + uzamsal kümelenme                              R²=0.615  ΔR²=+0.346
+  + derinlik-geçiş (giriş sırası)                  R²=0.642  ΔR²=+0.027
+  (sadece derinlik-geçiş eklenirse, renk dağılımı/kümelenme olmadan) R²=0.278 ΔR²=+0.175
+  (sadece renk dağılımı+kümelenme eklenirse, derinlik-geçiş olmadan) R²=0.615 ΔR²=+0.513
+
+== dens_meaningful  (hiyerarşik R², n=3921)
+  geometri: erişim ailesi + derinlik + boyut       R²=0.163  ΔR²=+0.163
+  + renk dağılımı (baskın, entropi)                R²=0.257  ΔR²=+0.094
+  + uzamsal kümelenme                              R²=0.361  ΔR²=+0.104
+  + derinlik-geçiş (giriş sırası)                  R²=0.399  ΔR²=+0.038
+  (sadece derinlik-geçiş eklenirse, renk dağılımı/kümelenme olmadan) R²=0.218 ΔR²=+0.055
+  (sadece renk dağılımı+kümelenme eklenirse, derinlik-geçiş olmadan) R²=0.361 ΔR²=+0.198
+
+== e_risky  (hiyerarşik R², n=3921)
+  geometri: erişim ailesi + derinlik + boyut       R²=0.157  ΔR²=+0.157
+  + renk dağılımı (baskın, entropi)                R²=0.304  ΔR²=+0.147
+  + uzamsal kümelenme                              R²=0.661  ΔR²=+0.357
+  + derinlik-geçiş (giriş sırası)                  R²=0.684  ΔR²=+0.023
+  (sadece derinlik-geçiş eklenirse, renk dağılımı/kümelenme olmadan) R²=0.333 ΔR²=+0.175
+  (sadece renk dağılımı+kümelenme eklenirse, derinlik-geçiş olmadan) R²=0.661 ΔR²=+0.503
+
+== risk  (hiyerarşik R², n=3921)
+  geometri: erişim ailesi + derinlik + boyut       R²=0.074  ΔR²=+0.074
+  + renk dağılımı (baskın, entropi)                R²=0.210  ΔR²=+0.136
+  + uzamsal kümelenme                              R²=0.634  ΔR²=+0.424
+  + derinlik-geçiş (giriş sırası)                  R²=0.651  ΔR²=+0.017
+  (sadece derinlik-geçiş eklenirse, renk dağılımı/kümelenme olmadan) R²=0.277 ΔR²=+0.203
+  (sadece renk dağılımı+kümelenme eklenirse, derinlik-geçiş olmadan) R²=0.634 ΔR²=+0.559
+
+Tam model (dens_risky): standart beta ve tek-tek çıkarma ΔR²
+                var  std_beta  drop1_dR2
+      cm_clustering    -0.886      0.090
+       deep_entropy    -0.204      0.023
+          log_cells     0.131      0.011
+      waves_nominal    -0.094      0.009
+      comp_per_cell    -0.209      0.006
+    cm_entropy_norm     0.393      0.004
+      ent_meandepth    -0.223      0.001
+       ent_maxdepth     0.209      0.001
+       ent_mean_run     0.028      0.000
+ent_wtrans_per_cell     0.039      0.000
+        cm_dominant    -0.025      0.000
+ ent_trans_per_cell     0.011      0.000
+
+GB test R²: 0.867
+comp_per_cell          0.564
+cm_clustering          0.249
+ent_meandepth          0.242
+deep_entropy           0.080
+cm_dominant            0.060
+ent_wtrans_per_cell    0.045
+cm_entropy_norm        0.039
+log_cells              0.035
+waves_nominal          0.034
+ent_maxdepth           0.029

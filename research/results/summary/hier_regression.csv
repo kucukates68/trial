@@ -1,0 +1,17 @@
+resp,model,R2,dR2
+dens_risky,geometri: erişim ailesi + derinlik + boyut,0.1027392240228242,0.1027392240228242
+dens_risky,"+ renk dağılımı (baskın, entropi)",0.26931408057927353,0.16657485655644932
+dens_risky,+ uzamsal kümelenme,0.6152720615203391,0.34595798094106556
+dens_risky,+ derinlik-geçiş (giriş sırası),0.6424918519738336,0.02721979045349454
+dens_meaningful,geometri: erişim ailesi + derinlik + boyut,0.16324620568950388,0.16324620568950388
+dens_meaningful,"+ renk dağılımı (baskın, entropi)",0.25706814683725665,0.09382194114775277
+dens_meaningful,+ uzamsal kümelenme,0.3610481949675486,0.10398004813029194
+dens_meaningful,+ derinlik-geçiş (giriş sırası),0.39894490235085023,0.03789670738330164
+e_risky,geometri: erişim ailesi + derinlik + boyut,0.1572947095417342,0.1572947095417342
+e_risky,"+ renk dağılımı (baskın, entropi)",0.30395715653576016,0.14666244699402597
+e_risky,+ uzamsal kümelenme,0.6606795653349209,0.35672240879916073
+e_risky,+ derinlik-geçiş (giriş sırası),0.6835454107362223,0.022865845401301432
+risk,geometri: erişim ailesi + derinlik + boyut,0.07416077395897847,0.07416077395897847
+risk,"+ renk dağılımı (baskın, entropi)",0.21001691030216396,0.1358561363431855
+risk,+ uzamsal kümelenme,0.6336426958767021,0.4236257855745381
+risk,+ derinlik-geçiş (giriş sırası),0.6506874625315664,0.01704476665486432

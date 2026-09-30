@@ -1,0 +1,88 @@
+== KARAR SINIFI PAYLARI (beklenen hamle payı, güvenli-tekdüze politika) ==
+                  sh_forced  sh_free  sh_meansafe  sh_trap  sh_crit
+family                                                             
+BOTTLENECK            0.192    0.123        0.338    0.144    0.203
+CORRIDOR              0.218    0.246        0.266    0.130    0.141
+MULTI                 0.199    0.316        0.301    0.095    0.088
+OPEN                  0.202    0.516        0.164    0.064    0.055
+SPLIT                 0.199    0.380        0.245    0.084    0.091
+SPLIT+BOTTLENECK      0.193    0.169        0.365    0.120    0.153
+      sh_forced  sh_free  sh_meansafe  sh_trap  sh_crit
+cm                                                     
+CM1       0.180    0.389        0.293    0.073    0.064
+CM10      0.132    0.309        0.305    0.126    0.128
+CM2       0.169    0.389        0.281    0.091    0.069
+CM3       0.541    0.150        0.244    0.018    0.047
+CM4       0.180    0.341        0.334    0.071    0.072
+CM5       0.073    0.214        0.053    0.256    0.404
+CM6       0.218    0.217        0.406    0.057    0.101
+CM7       0.115    0.192        0.195    0.216    0.283
+CM8       0.128    0.110        0.319    0.219    0.224
+CM9       0.156    0.361        0.319    0.086    0.076
+        sh_forced  sh_free  sh_meansafe  sh_trap  sh_crit
+bin                                                      
+w07_10      0.236    0.253        0.275    0.099    0.138
+w11_15      0.193    0.268        0.305    0.108    0.126
+w16_20      0.175    0.295        0.301    0.119    0.109
+tümü: {'sh_forced': 0.2, 'sh_free': 0.273, 'sh_meansafe': 0.294, 'sh_trap': 0.109, 'sh_crit': 0.124}
+silüet bazında min/max: {'sh_free': {'min': 0.23, 'max': 0.306}, 'sh_meansafe': {'min': 0.242, 'max': 0.336}, 'sh_trap': {'min': 0.092, 'max': 0.128}, 'sh_crit': {'min': 0.096, 'max': 0.156}}
+
+== ÇEŞİTLİLİK (tüm çözülebilir broad adaylar, n=3921) ==
+   boyut  gözlenen  entropi_bit  etkin_sayı  chao1
+ sig_dec        43         4.37        20.6   47.0
+sig_time         6         1.79         3.5    6.0
+ sig_reg         6         1.74         3.3    6.0
+ sig_ord         3         1.58         3.0    3.0
+ sig_all       461         7.30       157.7  677.9
+
+Alt popülasyon başına: aday / farklı sig_all / etkin sayı / chao1
+      src   n  distinct   eff  chao1
+     bird 514       166  95.3  299.5
+      car 487       173 105.3  255.1
+      cat 479       178 111.7  302.5
+    house 466       177 110.3  312.5
+    human 506       155  84.5  278.1
+landscape 497       167  89.8  359.9
+   rabbit 476       157  91.5  252.6
+     tree 496       161  97.0  220.3
+          family    n  distinct   eff  chao1
+      BOTTLENECK  622       190  98.8  353.4
+        CORRIDOR  647       205 109.5  344.6
+           MULTI 1107       238 112.2  342.7
+            OPEN  227        76  25.4  154.9
+           SPLIT  679       172  80.1  261.8
+SPLIT+BOTTLENECK  639       206 126.0  359.0
+  cm   n  distinct   eff  chao1
+ CM1 432        81  44.5  105.0
+CM10 413       164 100.1  328.6
+ CM2 432        80  41.6   96.5
+ CM3 432        56  24.1   76.1
+ CM4 432        81  33.4  107.5
+ CM5 114        43  27.5   80.8
+ CM6 432       117  64.7  155.7
+ CM7 371       152 104.2  299.0
+ CM8 431       145  75.6  242.0
+ CM9 432        89  38.9  147.5
+   bin    n  distinct   eff  chao1
+w07_10 1244       245 106.8  354.4
+w11_15 1308       278 127.5  446.1
+w16_20 1369       290 145.9  443.2
+
+Rarefaction (n aday -> beklenen farklı joint imza), tüm popülasyon: [(25, np.float64(21.0)), (50, np.float64(39.8)), (100, np.float64(67.3)), (200, np.float64(108.0)), (400, np.float64(163.9)), (800, np.float64(234.4)), (1600, np.float64(321.6)), (3200, np.float64(426.2))]
+Rarefaction yalnız 'cat' (tek geometri; tüm CM×erişim×bin): [(25, np.float64(22.0)), (50, np.float64(39.4)), (100, np.float64(68.0)), (200, np.float64(108.5)), (400, np.float64(161.5))]
+Rarefaction yalnız OPEN erişim: [(25, np.float64(15.4)), (50, np.float64(25.9)), (100, np.float64(43.6)), (200, np.float64(70.4))]
+
+'Tek faktör değişir, diğerleri sabit' -> bağlam başına ort. farklı imza (≥2 imza veren bağlam payı):
+  cm      (10 düzey) ort.farklı imza=8.30  ≥2 imza veren bağlam=1.00  bağlam=432
+  layout  (18 düzey) ort.farklı imza=12.37  ≥2 imza veren bağlam=1.00  bağlam=232
+  src     (8 düzey) ort.farklı imza=6.22  ≥2 imza veren bağlam=0.99  bağlam=512
+  bin     (3 düzey) ort.farklı imza=2.33  ≥2 imza veren bağlam=0.86  bağlam=1310
+  W (14 düzey, wsweep) ort.farklı imza=7.17  ≥2 imza veren bağlam=0.98  bağlam=235
+
+Birikimli farklı imza (düzeyler eklendikçe):
+  cm: [81, 191, 206, 256, 272, 303, 346, 419, 455, 461]
+  layout: [98, 145, 190, 243, 273, 299, 316, 334, 350, 371, 387, 394, 413, 428, 447, 449, 453, 461]
+  src: [166, 253, 313, 359, 389, 416, 443, 461]
+  bin: [245, 368, 461]
+imza çözünürlüğü kaba: farklı=143
+imza çözünürlüğü ince: farklı=313

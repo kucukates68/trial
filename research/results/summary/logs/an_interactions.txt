@@ -1,0 +1,63 @@
+
+== dens_risky: renk haritası × erişim ailesi (çözülebilir adaylar)
+family  OPEN  CORRIDOR  BOTTLENECK  SPLIT  SPLIT+BOTTLENECK  MULTI
+cm                                                                
+CM1     0.00      0.17        0.33   0.04              0.16   0.07
+CM10    0.02      0.29        0.43   0.15              0.41   0.16
+CM2     0.00      0.28        0.33   0.03              0.19   0.08
+CM3     0.02      0.05        0.15   0.03              0.09   0.04
+CM4     0.01      0.19        0.25   0.09              0.17   0.10
+CM5     0.45      0.81        0.78   0.63              0.69   0.67
+CM6     0.08      0.16        0.28   0.08              0.21   0.11
+CM7     0.39      0.54        0.55   0.46              0.53   0.48
+CM8     0.37      0.46        0.53   0.40              0.46   0.41
+CM9     0.01      0.23        0.31   0.08              0.23   0.08
+
+== greedy_fail: renk haritası × erişim ailesi (çözülebilir adaylar)
+family  OPEN  CORRIDOR  BOTTLENECK  SPLIT  SPLIT+BOTTLENECK  MULTI
+cm                                                                
+CM1     0.00      0.12        0.18   0.03              0.14   0.08
+CM10    0.00      0.21        0.48   0.11              0.62   0.23
+CM2     0.00      0.07        0.15   0.03              0.15   0.14
+CM3     0.00      0.14        0.28   0.07              0.33   0.18
+CM4     0.00      0.04        0.15   0.04              0.18   0.13
+CM5     0.00      0.71        0.80   0.29              0.40   0.62
+CM6     0.04      0.08        0.38   0.06              0.39   0.08
+CM7     0.08      0.51        0.62   0.41              0.78   0.40
+CM8     0.12      0.44        0.68   0.25              0.47   0.47
+CM9     0.00      0.04        0.17   0.04              0.29   0.08
+
+== e_risky: renk haritası × erişim ailesi (çözülebilir adaylar)
+family  OPEN  CORRIDOR  BOTTLENECK  SPLIT  SPLIT+BOTTLENECK  MULTI
+cm                                                                
+CM1     0.07      2.28        4.20   0.55              2.14   0.91
+CM10    0.30      3.76        5.67   1.89              5.37   2.12
+CM2     0.04      3.70        4.29   0.43              2.43   0.99
+CM3     0.21      0.61        1.93   0.37              1.23   0.50
+CM4     0.14      2.49        3.28   1.21              2.21   1.26
+CM5     7.24     14.17       14.37   9.76             11.98  10.82
+CM6     1.10      2.12        3.52   1.10              2.75   1.41
+CM7     4.86      7.27        7.47   5.88              7.13   6.20
+CM8     4.63      5.80        6.75   5.11              5.90   5.15
+CM9     0.14      2.94        3.92   1.09              2.92   0.97
+
+== Aralık karşılaştırması (dens_risky): erişimi değiştirince vs renk haritasını değiştirince
+   silüet  erişim_değişince_aralık  renk_haritası_değişince_aralık
+     bird                    0.373                           0.611
+      car                    0.529                           0.620
+      cat                    0.481                           0.601
+    house                    0.412                           0.670
+    human                    0.442                           0.648
+landscape                    0.436                           0.589
+   rabbit                    0.351                           0.659
+     tree                    0.350                           0.658
+ortalama: {'erişim_değişince_aralık': 0.422, 'renk_haritası_değişince_aralık': 0.632}
+silüet değişince (cm, erişim, bin sabit) ortalama aralık: 0.286
+
+Sıkıcı renk haritası (CM1) + zor erişim vs zengin renk haritası (CM7/CM8) + açık meydan:
+  CM1: OPEN dens_risky=0.004 | BOTTLENECK=0.327 | SPLIT+BOTTLENECK=0.163
+  CM3: OPEN dens_risky=0.016 | BOTTLENECK=0.150 | SPLIT+BOTTLENECK=0.094
+  CM7: OPEN dens_risky=0.392 | BOTTLENECK=0.554 | SPLIT+BOTTLENECK=0.530
+  CM8: OPEN dens_risky=0.366 | BOTTLENECK=0.529 | SPLIT+BOTTLENECK=0.464
+
+greedy başarısızlığı >=%50 olan (CM, aile) hücreleri: [('CM10', 'SPLIT+BOTTLENECK', 0.62), ('CM5', 'CORRIDOR', 0.71), ('CM5', 'BOTTLENECK', 0.8), ('CM5', 'MULTI', 0.62), ('CM7', 'CORRIDOR', 0.51), ('CM7', 'BOTTLENECK', 0.62), ('CM7', 'SPLIT+BOTTLENECK', 0.78), ('CM8', 'BOTTLENECK', 0.68)]

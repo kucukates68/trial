@@ -1,0 +1,121 @@
+satır 4032 çözülebilir 0.797
+
+Çözülebilirlik desene göre: {'checker3': 0.32, 'cols3': 1.0, 'diag3': 0.34, 'mrf0': 0.52, 'mrf1': 0.67, 'mrf3': 0.94, 'mrf8': 0.99, 'quadrants': 1.0, 'rings': 1.0, 'rings_alt': 0.97, 'rows3': 1.0, 'rows_alt': 0.78, 'sandwich': 0.91, 'tiles2': 0.7}
+7-16 dalga aday: 1420
+           cm_comp_total  cm_trans_sp  cm_clustering  ent_trans_per_cell  dens_risky  dens_meaningful  e_risky  greedy_fail  regret_max  win_undo2
+pat                                                                                                                                               
+rings              3.000        0.284          0.400               0.323       0.139            0.560    1.338        0.083       1.118      0.953
+mrf8               2.714        0.174          0.675               0.357       0.182            0.575    1.792        0.206       0.921      0.878
+cols3              3.000        0.159          0.759               0.530       0.206            0.532    2.255        0.079       0.754      0.827
+rows3              3.000        0.159          0.759               0.242       0.250            0.560    2.736        0.079       0.770      0.764
+quadrants          4.000        0.162          0.741               0.394       0.287            0.561    2.906        0.142       1.136      0.738
+sandwich           3.714        0.420          0.140               0.413       0.344            0.757    3.480        0.151       1.056      0.731
+rings_alt          3.622        0.418          0.302               0.456       0.371            0.753    4.066        0.259       1.189      0.630
+mrf3               7.124        0.297          0.501               0.433       0.387            0.632    4.035        0.413       1.719      0.581
+rows_alt           7.312        0.500          0.242               0.483       0.406            0.529    4.678        0.260       1.031      0.474
+tiles2            13.216        0.417          0.373               0.576       0.512            0.644    5.909        0.295       1.682      0.407
+checker3          47.200        1.000         -0.500               0.817       0.545            0.626    6.480        0.200       2.000      0.176
+mrf1              13.500        0.484          0.243               0.510       0.548            0.693    5.733        0.449       1.885      0.345
+mrf0              22.880        0.679         -0.039               0.666       0.579            0.710    6.599        0.420       2.000      0.283
+diag3             47.789        1.000         -0.500               0.783       0.613            0.674    7.333        0.316       2.000      0.151
+
+Deseni x erişim ailesi: dens_risky
+family     BOTTLENECK  CORRIDOR  MULTI  OPEN  SPLIT  SPLIT+BOTTLENECK
+pat                                                                  
+checker3          NaN       NaN   0.58  0.43   0.55               NaN
+cols3            0.35      0.26   0.14  0.00   0.16              0.24
+diag3             NaN       NaN   0.71  0.42   0.56               NaN
+mrf0             0.90      0.74   0.60  0.34   0.54              0.70
+mrf1             0.67      0.69   0.51  0.30   0.59              0.59
+mrf3             0.56      0.45   0.32  0.09   0.27              0.51
+mrf8             0.32      0.17   0.10  0.10   0.17              0.22
+quadrants        0.53      0.46   0.25  0.00   0.05              0.26
+rings            0.14      0.13   0.13  0.15   0.14              0.15
+rings_alt        0.48      0.42   0.31  0.23   0.31              0.42
+rows3            0.42      0.39   0.11  0.00   0.21              0.31
+rows_alt         0.71      0.49   0.35  0.00   0.29              0.61
+sandwich         0.46      0.40   0.32  0.19   0.29              0.38
+tiles2           0.70      0.63   0.51  0.21   0.40              0.62
+/home/user/trial/research/analysis_common.py:43: SingularMatrixWarning: The design matrix is rank-deficient. The model parameters are not uniquely determined.
+  m = smf.ols(formula, data=df).fit()
+/usr/local/lib/python3.11/dist-packages/statsmodels/base/model.py:1988: ValueWarning: covariance of constraints does not have full rank. The number of constraints is 13, but rank is 7
+  res = self.wald_test(
+/usr/local/lib/python3.11/dist-packages/statsmodels/base/model.py:1988: ValueWarning: covariance of constraints does not have full rank. The number of constraints is 117, but rank is 111
+  res = self.wald_test(
+
+ANOVA η² (8x8, tek geometri) resp=dens_risky R2=0.96
+pat           0.450
+layout        0.202
+Wc            0.032
+pat:layout    0.228
+pat:Wc        0.107
+layout:Wc     0.014
+Residual      0.042
+/home/user/trial/research/analysis_common.py:43: SingularMatrixWarning: The design matrix is rank-deficient. The model parameters are not uniquely determined.
+  m = smf.ols(formula, data=df).fit()
+/usr/local/lib/python3.11/dist-packages/statsmodels/base/model.py:1988: ValueWarning: covariance of constraints does not have full rank. The number of constraints is 13, but rank is 7
+  res = self.wald_test(
+/usr/local/lib/python3.11/dist-packages/statsmodels/base/model.py:1988: ValueWarning: covariance of constraints does not have full rank. The number of constraints is 117, but rank is 111
+  res = self.wald_test(
+
+ANOVA η² (8x8, tek geometri) resp=dens_meaningful R2=0.92
+pat           0.284
+layout        0.145
+Wc            0.013
+pat:layout    0.412
+pat:Wc        0.059
+layout:Wc     0.026
+Residual      0.082
+/home/user/trial/research/analysis_common.py:43: SingularMatrixWarning: The design matrix is rank-deficient. The model parameters are not uniquely determined.
+  m = smf.ols(formula, data=df).fit()
+/usr/local/lib/python3.11/dist-packages/statsmodels/base/model.py:1988: ValueWarning: covariance of constraints does not have full rank. The number of constraints is 13, but rank is 7
+  res = self.wald_test(
+/usr/local/lib/python3.11/dist-packages/statsmodels/base/model.py:1988: ValueWarning: covariance of constraints does not have full rank. The number of constraints is 117, but rank is 111
+  res = self.wald_test(
+
+ANOVA η² (8x8, tek geometri) resp=e_risky R2=0.92
+pat           0.331
+layout        0.121
+Wc            0.012
+pat:layout    0.128
+pat:Wc        0.050
+layout:Wc     0.026
+Residual      0.079
+/home/user/trial/research/analysis_common.py:43: SingularMatrixWarning: The design matrix is rank-deficient. The model parameters are not uniquely determined.
+  m = smf.ols(formula, data=df).fit()
+/usr/local/lib/python3.11/dist-packages/statsmodels/base/model.py:1988: ValueWarning: covariance of constraints does not have full rank. The number of constraints is 13, but rank is 7
+  res = self.wald_test(
+/usr/local/lib/python3.11/dist-packages/statsmodels/base/model.py:1988: ValueWarning: covariance of constraints does not have full rank. The number of constraints is 117, but rank is 111
+  res = self.wald_test(
+
+ANOVA η² (8x8, tek geometri) resp=greedy_fail R2=0.60
+pat           0.034
+layout        0.068
+Wc            0.039
+pat:layout    0.144
+pat:Wc        0.129
+layout:Wc     0.070
+Residual      0.400
+
+Kontrast çiftleri (7-16 dalga, tüm erişimler): dens_risky / greedy_fail / cm_comp_total / ent_trans_per_cell
+  rows3      n= 126 comps=  3.0 entTr=0.24 dens_risky=0.250 greedyFail=0.08 solv_share_in_all=1.00
+  rows_alt   n=  96 comps=  7.3 entTr=0.48 dens_risky=0.406 greedyFail=0.26 solv_share_in_all=0.78
+  --
+  rings      n= 144 comps=  3.0 entTr=0.32 dens_risky=0.139 greedyFail=0.08 solv_share_in_all=1.00
+  rings_alt  n= 143 comps=  3.6 entTr=0.46 dens_risky=0.371 greedyFail=0.26 solv_share_in_all=0.97
+  --
+  cols3      n= 126 comps=  3.0 entTr=0.53 dens_risky=0.206 greedyFail=0.08 solv_share_in_all=1.00
+  rows3      n= 126 comps=  3.0 entTr=0.24 dens_risky=0.250 greedyFail=0.08 solv_share_in_all=1.00
+  --
+  mrf0       n=  50 comps= 22.9 entTr=0.67 dens_risky=0.579 greedyFail=0.42 solv_share_in_all=0.52
+  mrf8       n= 126 comps=  2.7 entTr=0.36 dens_risky=0.182 greedyFail=0.21 solv_share_in_all=0.99
+  --
+  checker3   n=  15 comps= 47.2 entTr=0.82 dens_risky=0.545 greedyFail=0.20 solv_share_in_all=0.32
+  diag3      n=  19 comps= 47.8 entTr=0.78 dens_risky=0.613 greedyFail=0.32 solv_share_in_all=0.34
+  --
+
+Kümelenme dozu (MRF yumuşatma geçişi):
+  mrf0: comps=22.9 clustering=-0.04 entTr=0.67 dens_risky=0.579 dens_meaningful=0.710 greedyFail=0.42 solv=0.52
+  mrf1: comps=13.5 clustering=0.24 entTr=0.51 dens_risky=0.548 dens_meaningful=0.693 greedyFail=0.45 solv=0.67
+  mrf3: comps=7.1 clustering=0.50 entTr=0.43 dens_risky=0.387 dens_meaningful=0.632 greedyFail=0.41 solv=0.94
+  mrf8: comps=2.7 clustering=0.68 entTr=0.36 dens_risky=0.182 dens_meaningful=0.575 greedyFail=0.21 solv=0.99

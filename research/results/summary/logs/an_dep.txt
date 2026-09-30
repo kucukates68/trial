@@ -1,0 +1,152 @@
+broad satır 4320 dep_unreach: 0.0
+
+Çözülemez (W sonrası) ile bağımlılık döngüsü:
+solv       False  True 
+dep_cycle              
+False      0.092  0.908
+unreach (kapı hücreleri ulaşılmaz) ile solv: solv         False  True 
+dep_unreach              
+False          399   3921
+
+Çözülebilirlerde: bağımlılık döngüsü payı 0.0
+           dens_risky  dens_meaningful  e_risky  greedy_fail   risk  regret_max  win_undo2
+dep_cycle                                                                                 
+False           0.233            0.527     3.08        0.226  0.099       1.187      0.742
+
+Çözülebilir + döngü var: W dağılımı (bin)
+{}
+
+Korelasyonlar (dens_risky ile):
+                    dens_risky  greedy_fail
+dep_edges                 0.24         0.12
+dep_density               0.24         0.12
+dep_bidir                  NaN          NaN
+dep_shadow_frac           0.27         0.11
+dep_cross_per_cell        0.27         0.11
+dep_same_per_cell         0.15         0.11
+dep_maxdom                0.24         0.12
+cm_clustering            -0.59        -0.28
+comp_per_cell             0.57         0.22
+ent_trans_per_cell        0.38         0.24
+cm_dominant              -0.37        -0.08
+cm_entropy_norm           0.33         0.06
+deep_entropy              0.09         0.07
+dens_risky                1.00         0.45
+greedy_fail               0.45         1.00
+/home/user/trial/research/an_dep.py:33: SingularMatrixWarning: The design matrix is rank-deficient. The model parameters are not uniquely determined.
+  return sm.OLS(s[y],X).fit().rsquared
+/home/user/trial/research/an_dep.py:33: SingularMatrixWarning: The design matrix is rank-deficient. The model parameters are not uniquely determined.
+  return sm.OLS(s[y],X).fit().rsquared
+/home/user/trial/research/an_dep.py:33: SingularMatrixWarning: The design matrix is rank-deficient. The model parameters are not uniquely determined.
+  return sm.OLS(s[y],X).fit().rsquared
+
+dens_risky: erişim ailesi: 0.097 | +renk istatistiği (kümelenme, parça, baskın, entropi): 0.589 | +derinlik-geçiş: 0.617 | yalnız bağımlılık (dominator): 0.143 | bağımlılık + renk istatistiği: 0.620 | hepsi: 0.646
+/home/user/trial/research/an_dep.py:33: SingularMatrixWarning: The design matrix is rank-deficient. The model parameters are not uniquely determined.
+  return sm.OLS(s[y],X).fit().rsquared
+/home/user/trial/research/an_dep.py:33: SingularMatrixWarning: The design matrix is rank-deficient. The model parameters are not uniquely determined.
+  return sm.OLS(s[y],X).fit().rsquared
+/home/user/trial/research/an_dep.py:33: SingularMatrixWarning: The design matrix is rank-deficient. The model parameters are not uniquely determined.
+  return sm.OLS(s[y],X).fit().rsquared
+
+dens_meaningful: erişim ailesi: 0.151 | +renk istatistiği (kümelenme, parça, baskın, entropi): 0.345 | +derinlik-geçiş: 0.381 | yalnız bağımlılık (dominator): 0.171 | bağımlılık + renk istatistiği: 0.358 | hepsi: 0.394
+/home/user/trial/research/an_dep.py:33: SingularMatrixWarning: The design matrix is rank-deficient. The model parameters are not uniquely determined.
+  return sm.OLS(s[y],X).fit().rsquared
+/home/user/trial/research/an_dep.py:33: SingularMatrixWarning: The design matrix is rank-deficient. The model parameters are not uniquely determined.
+  return sm.OLS(s[y],X).fit().rsquared
+/home/user/trial/research/an_dep.py:33: SingularMatrixWarning: The design matrix is rank-deficient. The model parameters are not uniquely determined.
+  return sm.OLS(s[y],X).fit().rsquared
+
+e_risky: erişim ailesi: 0.081 | +renk istatistiği (kümelenme, parça, baskın, entropi): 0.611 | +derinlik-geçiş: 0.638 | yalnız bağımlılık (dominator): 0.121 | bağımlılık + renk istatistiği: 0.639 | hepsi: 0.663
+/home/user/trial/research/an_dep.py:33: SingularMatrixWarning: The design matrix is rank-deficient. The model parameters are not uniquely determined.
+  return sm.OLS(s[y],X).fit().rsquared
+/home/user/trial/research/an_dep.py:33: SingularMatrixWarning: The design matrix is rank-deficient. The model parameters are not uniquely determined.
+  return sm.OLS(s[y],X).fit().rsquared
+/home/user/trial/research/an_dep.py:33: SingularMatrixWarning: The design matrix is rank-deficient. The model parameters are not uniquely determined.
+  return sm.OLS(s[y],X).fit().rsquared
+
+greedy_fail: erişim ailesi: 0.053 | +renk istatistiği (kümelenme, parça, baskın, entropi): 0.151 | +derinlik-geçiş: 0.188 | yalnız bağımlılık (dominator): 0.056 | bağımlılık + renk istatistiği: 0.156 | hepsi: 0.191
+/home/user/trial/research/an_dep.py:33: SingularMatrixWarning: The design matrix is rank-deficient. The model parameters are not uniquely determined.
+  return sm.OLS(s[y],X).fit().rsquared
+/home/user/trial/research/an_dep.py:33: SingularMatrixWarning: The design matrix is rank-deficient. The model parameters are not uniquely determined.
+  return sm.OLS(s[y],X).fit().rsquared
+/home/user/trial/research/an_dep.py:33: SingularMatrixWarning: The design matrix is rank-deficient. The model parameters are not uniquely determined.
+  return sm.OLS(s[y],X).fit().rsquared
+
+risk: erişim ailesi: 0.065 | +renk istatistiği (kümelenme, parça, baskın, entropi): 0.596 | +derinlik-geçiş: 0.615 | yalnız bağımlılık (dominator): 0.103 | bağımlılık + renk istatistiği: 0.623 | hepsi: 0.640
+/home/user/trial/research/an_dep.py:45: SingularMatrixWarning: The design matrix is rank-deficient. The model parameters are not uniquely determined.
+  full=sm.OLS(yf,Xf).fit();rows=[]
+/home/user/trial/research/an_dep.py:47: SingularMatrixWarning: The design matrix is rank-deficient. The model parameters are not uniquely determined.
+  m2=sm.OLS(yf,Xf.drop(columns=[c])).fit();rows.append((c,full.params[c],full.rsquared-m2.rsquared))
+/home/user/trial/research/an_dep.py:47: SingularMatrixWarning: The design matrix is rank-deficient. The model parameters are not uniquely determined.
+  m2=sm.OLS(yf,Xf.drop(columns=[c])).fit();rows.append((c,full.params[c],full.rsquared-m2.rsquared))
+/home/user/trial/research/an_dep.py:47: SingularMatrixWarning: The design matrix is rank-deficient. The model parameters are not uniquely determined.
+  m2=sm.OLS(yf,Xf.drop(columns=[c])).fit();rows.append((c,full.params[c],full.rsquared-m2.rsquared))
+/home/user/trial/research/an_dep.py:47: SingularMatrixWarning: The design matrix is rank-deficient. The model parameters are not uniquely determined.
+  m2=sm.OLS(yf,Xf.drop(columns=[c])).fit();rows.append((c,full.params[c],full.rsquared-m2.rsquared))
+/home/user/trial/research/an_dep.py:47: SingularMatrixWarning: The design matrix is rank-deficient. The model parameters are not uniquely determined.
+  m2=sm.OLS(yf,Xf.drop(columns=[c])).fit();rows.append((c,full.params[c],full.rsquared-m2.rsquared))
+/home/user/trial/research/an_dep.py:47: SingularMatrixWarning: The design matrix is rank-deficient. The model parameters are not uniquely determined.
+  m2=sm.OLS(yf,Xf.drop(columns=[c])).fit();rows.append((c,full.params[c],full.rsquared-m2.rsquared))
+/home/user/trial/research/an_dep.py:47: SingularMatrixWarning: The design matrix is rank-deficient. The model parameters are not uniquely determined.
+  m2=sm.OLS(yf,Xf.drop(columns=[c])).fit();rows.append((c,full.params[c],full.rsquared-m2.rsquared))
+/home/user/trial/research/an_dep.py:47: SingularMatrixWarning: The design matrix is rank-deficient. The model parameters are not uniquely determined.
+  m2=sm.OLS(yf,Xf.drop(columns=[c])).fit();rows.append((c,full.params[c],full.rsquared-m2.rsquared))
+/home/user/trial/research/an_dep.py:47: SingularMatrixWarning: The design matrix is rank-deficient. The model parameters are not uniquely determined.
+  m2=sm.OLS(yf,Xf.drop(columns=[c])).fit();rows.append((c,full.params[c],full.rsquared-m2.rsquared))
+/home/user/trial/research/an_dep.py:47: SingularMatrixWarning: The design matrix is rank-deficient. The model parameters are not uniquely determined.
+  m2=sm.OLS(yf,Xf.drop(columns=[c])).fit();rows.append((c,full.params[c],full.rsquared-m2.rsquared))
+/home/user/trial/research/an_dep.py:47: SingularMatrixWarning: The design matrix is rank-deficient. The model parameters are not uniquely determined.
+  m2=sm.OLS(yf,Xf.drop(columns=[c])).fit();rows.append((c,full.params[c],full.rsquared-m2.rsquared))
+/home/user/trial/research/an_dep.py:47: SingularMatrixWarning: The design matrix is rank-deficient. The model parameters are not uniquely determined.
+  m2=sm.OLS(yf,Xf.drop(columns=[c])).fit();rows.append((c,full.params[c],full.rsquared-m2.rsquared))
+/home/user/trial/research/an_dep.py:47: SingularMatrixWarning: The design matrix is rank-deficient. The model parameters are not uniquely determined.
+  m2=sm.OLS(yf,Xf.drop(columns=[c])).fit();rows.append((c,full.params[c],full.rsquared-m2.rsquared))
+/home/user/trial/research/an_dep.py:47: SingularMatrixWarning: The design matrix is rank-deficient. The model parameters are not uniquely determined.
+  m2=sm.OLS(yf,Xf.drop(columns=[c])).fit();rows.append((c,full.params[c],full.rsquared-m2.rsquared))
+
+Tüm tanımlayıcılarla tek-tek çıkarma (dens_risky), R2=0.646
+                var  std_beta  drop1_dR2
+      cm_clustering    -0.775      0.075
+       deep_entropy    -0.163      0.015
+ ent_trans_per_cell     0.201      0.002
+      comp_per_cell    -0.128      0.002
+ent_wtrans_per_cell    -0.176      0.002
+    cm_entropy_norm     0.228      0.001
+       ent_mean_run     0.049      0.001
+        cm_dominant    -0.145      0.001
+        dep_density    -2.258      0.000
+         dep_maxdom     0.637      0.000
+          dep_bidir    -0.000      0.000
+  dep_same_per_cell     0.507      0.000
+ dep_cross_per_cell     0.674      0.000
+    dep_shadow_frac     0.674      0.000
+
+Bölge ablasyonu, GRUP İÇİ (R sabit) korelasyon ~ dens_risky:
+  dep_shadow_frac      r=0.356
+  dep_cross_per_cell   r=0.356
+/usr/local/lib/python3.11/dist-packages/numpy/lib/_function_base_impl.py:3023: RuntimeWarning: invalid value encountered in divide
+  c /= stddev[:, None]
+/usr/local/lib/python3.11/dist-packages/numpy/lib/_function_base_impl.py:3024: RuntimeWarning: invalid value encountered in divide
+  c /= stddev[None, :]
+  dep_density          r=nan
+  dep_bidir            r=nan
+  ent_trans_per_cell   r=-0.003
+
+Sentetik: desen -> bağımlılık tanımlayıcıları ve dens_risky
+           dep_shadow_frac  dep_cross_per_cell  dep_density  dep_bidir  dep_cycle  dens_risky
+src                                                                                          
+rings                0.054               0.054        0.056        0.0        0.0       0.139
+mrf8                 0.094               0.094        0.063        0.0        0.0       0.182
+cols3                0.106               0.106        0.056        0.0        0.0       0.206
+rows3                0.111               0.111        0.056        0.0        0.0       0.250
+quadrants            0.111               0.111        0.056        0.0        0.0       0.287
+sandwich             0.037               0.037        0.042        0.0        0.0       0.344
+rings_alt            0.077               0.077        0.054        0.0        0.0       0.371
+mrf3                 0.091               0.091        0.052        0.0        0.0       0.387
+rows_alt             0.074               0.074        0.038        0.0        0.0       0.406
+tiles2               0.069               0.069        0.034        0.0        0.0       0.512
+checker3             0.000               0.000        0.000        0.0        0.0       0.545
+mrf1                 0.021               0.021        0.013        0.0        0.0       0.548
+mrf0                 0.028               0.028        0.013        0.0        0.0       0.579
+diag3                0.000               0.000        0.000        0.0        0.0       0.613
+rings vs rings_alt bağımlılık kıyas: {'rings': {'dep_shadow_frac': 0.054, 'dep_cross_per_cell': 0.054, 'dens_risky': 0.139}, 'rings_alt': {'dep_shadow_frac': 0.077, 'dep_cross_per_cell': 0.077, 'dens_risky': 0.371}}

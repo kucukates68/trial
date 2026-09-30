@@ -1,0 +1,45 @@
+Puzzle verimi (greedy başarısız & dens_risky>=0.25) η²: {'src': 0.014, 'cm': 0.234, 'layout': 0.068, 'bin': 0.013, 'src:cm': 0.043, 'src:layout': 0.038, 'src:bin': 0.003, 'cm:layout': 0.088, 'cm:bin': 0.014, 'layout:bin': 0.006, 'Residual': 0.509, 'R2': 0.491}
+çözülebilir pay CM: {'CM1': 1.0, 'CM10': 0.956, 'CM2': 1.0, 'CM3': 1.0, 'CM4': 1.0, 'CM5': 0.264, 'CM6': 1.0, 'CM7': 0.859, 'CM8': 0.998, 'CM9': 1.0}
+
+En az riskli karar (hücre sayısı ~aynı; CM×erişim):
+               cells  e_risky  e_meaningful  risky_per100  dens_risky  greedy_fail    n
+cm   family                                                                            
+CM2  OPEN       73.0     0.04          0.10          0.04        0.00         0.00   24
+CM1  OPEN       73.0     0.07          0.34          0.08        0.00         0.00   24
+CM4  OPEN       73.0     0.14          1.18          0.18        0.01         0.00   24
+CM9  OPEN       73.0     0.14          0.89          0.25        0.01         0.00   24
+CM3  OPEN       73.0     0.21          2.70          0.34        0.02         0.00   24
+CM10 OPEN       73.0     0.30          2.30          0.47        0.02         0.00   24
+CM3  SPLIT      73.0     0.37          3.01          0.54        0.03         0.07   72
+CM2  SPLIT      73.0     0.43          2.05          0.58        0.03         0.03   72
+CM3  MULTI      73.0     0.50          3.76          0.71        0.04         0.18  120
+CM1  SPLIT      73.0     0.55          2.71          0.73        0.04         0.03   72
+CM3  CORRIDOR   73.0     0.61          3.84          0.92        0.05         0.14   72
+CM1  MULTI      73.0     0.91          4.83          1.31        0.07         0.08  120
+
+En çok riskli karar:
+                      cells  e_risky  e_meaningful  risky_per100  dens_risky  greedy_fail   n
+cm  family                                                                                   
+CM5 BOTTLENECK        57.80    14.37         14.67         25.52        0.78         0.80   5
+    CORRIDOR          67.79    14.17         14.25         21.88        0.81         0.71  14
+    SPLIT+BOTTLENECK  62.30    11.98         12.43         19.48        0.69         0.40  10
+    MULTI             65.49    10.82         11.64         17.01        0.67         0.62  39
+    SPLIT             67.57     9.76         10.57         14.80        0.63         0.29  35
+CM7 BOTTLENECK        72.27     7.47          9.77         10.85        0.55         0.62  52
+    CORRIDOR          73.15     7.27          9.59         10.42        0.54         0.51  59
+CM5 OPEN              72.18     7.24         10.34         10.36        0.45         0.00  11
+
+>=90 hücre (rabbit, landscape) içinde CM × OPEN ortalama e_risky / dens_risky:
+      cells  e_risky  dens_risky
+cm                              
+CM1   97.50     0.20        0.01
+CM10  97.50     0.21        0.02
+CM2   97.50     0.15        0.01
+CM3   97.50     0.12        0.01
+CM4   97.50     0.22        0.02
+CM5   98.67     8.64        0.53
+CM6   97.50     0.35        0.03
+CM7   97.50     4.15        0.33
+CM8   97.50     4.29        0.34
+CM9   97.50     0.00        0.00
+kaydedildi: /home/user/trial/research/results/summary.json

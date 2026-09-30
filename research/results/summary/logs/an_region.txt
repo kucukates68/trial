@@ -1,0 +1,62 @@
+satır 4152 çözülebilir 0.94
+çözülebilirlik R'ye göre: {3: 1.0, 4: 1.0, 5: 0.98, 6: 0.99, 8: 0.97, 10: 0.99, 12: 0.94, 16: 0.89}
+
+R (bölge sayısı = parçalanmışlık) ile ent_trans_per_cell korelasyonu: 0.54
+R -> ortalama (çözülebilir):
+    dens_risky  dens_meaningful  e_risky  e_crit   risk  ent_trans_per_cell  cm_trans_sp  greedy_fail  regret_max  win_undo2
+R                                                                                                                           
+3        0.121            0.346    1.305   0.603  0.045               0.354        0.119        0.094       0.625      0.923
+4        0.178            0.452    1.955   0.987  0.073               0.376        0.164        0.201       0.847      0.865
+5        0.190            0.496    2.114   1.108  0.078               0.403        0.202        0.108       1.015      0.867
+6        0.179            0.467    1.936   0.963  0.075               0.387        0.219        0.121       1.075      0.867
+8        0.261            0.567    2.872   1.525  0.112               0.432        0.242        0.277       1.355      0.762
+10       0.271            0.586    2.976   1.548  0.115               0.454        0.286        0.341       1.555      0.747
+12       0.359            0.623    3.914   2.000  0.162               0.490        0.327        0.465       1.915      0.625
+16       0.391            0.648    4.242   2.338  0.184               0.564        0.455        0.397       2.068      0.584
+
+Aynı bölge sayısı/yerleşim içinde (renk SIRASI değişiyor, parçalanmışlık sabit): korelasyon trans_c ~ dens_risky_c = -0.003 n= 3211
+  R= 6 içi korelasyon (derinlik-geçiş ~ riskli yoğunluk): 0.116 n= 118
+  R= 8 içi korelasyon (derinlik-geçiş ~ riskli yoğunluk): -0.09 n= 379
+  R=10 içi korelasyon (derinlik-geçiş ~ riskli yoğunluk): -0.03 n= 666
+  R=12 içi korelasyon (derinlik-geçiş ~ riskli yoğunluk): 0.049 n= 492
+  R=16 içi korelasyon (derinlik-geçiş ~ riskli yoğunluk): 0.011 n= 1556
+
+R² taban(şekil+erişim+bin)=0.575 | +R ve +geçiş =0.766
+  parçalanmışlık (R) yalnız katkı ΔR² = 0.084
+  derinlik-geçiş yalnız katkı ΔR² = 0.001
+  ent_trans katsayısı: 0.088 (p=0.000212)
+
+Doz-yanıt: derinlik-geçiş/hücre kantili -> dens_risky (tüm R):
+trans_bin
+(0.148, 0.372]    0.204
+(0.372, 0.455]    0.249
+(0.455, 0.535]    0.329
+(0.535, 0.612]    0.387
+(0.612, 0.778]    0.414
+  R=4: [0.117, 0.209, 0.23, 0.155]
+  R=8: [0.246, 0.259, 0.251, 0.289]
+  R=16: [0.29, 0.429, 0.392, 0.466]
+
+R x (derinlik-geçiş 3'lü) -> dens_risky
+tb3  düşük   orta  yüksek
+R                        
+3    0.114  0.121   0.161
+4    0.191  0.174   0.107
+5    0.159  0.271   0.112
+6    0.180  0.186   0.166
+8    0.258  0.243   0.293
+10   0.228  0.299   0.342
+12   0.246  0.386   0.447
+16   0.271  0.368   0.425
+
+Karar sınıfları payı (R'ye göre)
+    e_forced_share  e_free_share  e_meansafe_share  e_trap_share  e_crit_share
+R                                                                             
+3            0.184         0.463             0.233         0.065         0.055
+4            0.184         0.358             0.282         0.087         0.089
+5            0.169         0.331             0.311         0.090         0.099
+6            0.180         0.350             0.292         0.090         0.089
+8            0.162         0.268             0.311         0.122         0.138
+10           0.163         0.250             0.316         0.130         0.141
+12           0.147         0.231             0.268         0.173         0.181
+16           0.140         0.215             0.260         0.172         0.212

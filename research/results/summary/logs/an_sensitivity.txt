@@ -1,0 +1,19 @@
+                            0      1      2      3
+delta                    0.02   0.05   0.10   0.20
+n                        3921   3921   3921   3921
+share_free              0.245  0.273  0.322  0.411
+share_meansafe          0.322  0.294  0.245  0.155
+share_trap              0.109  0.109  0.109  0.109
+share_crit              0.124  0.124  0.124  0.124
+dens_meaningful         0.555  0.527  0.478  0.389
+dens_risky              0.233  0.233  0.233  0.233
+eta2_cm_meaningful      0.257  0.244  0.253  0.331
+eta2_layout_meaningful  0.222   0.22  0.217  0.211
+eta2_src_meaningful     0.012  0.012  0.015  0.022
+eta2_bin_meaningful     0.002  0.001  0.006  0.021
+eta2_cm_risky           0.549  0.549  0.549  0.549
+eta2_layout_risky       0.152  0.152  0.152  0.152
+eta2_src_risky          0.041  0.041  0.041  0.041
+
+dens_risky delta'dan bağımsız mı? max |fark| = 0.0
+dens_meaningful korelasyonu (δ=0.05 vs 0.20): 0.902
