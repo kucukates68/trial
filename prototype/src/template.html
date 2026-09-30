@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Renk Yerleştirme — prototip v0</title>
+<style>/*__CSS__*/</style>
+</head>
+<body>
+<div id="app">
+  <header id="top">
+    <div class="brand">Renk Yerleştirme<small>prototip v0</small></div>
+    <label id="lvlLbl">Seviye <select id="levelSel"></select></label>
+    <label>İpucu <select id="hintSel" title="0: yok · 1: dalganın dolduracağı hücreleri göster · 2: + bu dalga erişilemez yapacak hücreleri göster">
+      <option value="0">0 · yok</option><option value="1">1 · önizleme</option><option value="2">2 · önizleme + kilit uyarısı</option></select></label>
+    <label>Hayalet renk <input type="checkbox" id="ghostChk" checked></label>
+    <label>Hız <select id="speedSel"><option value="1">×1</option><option value="2">×2</option><option value="4">×4</option></select></label>
+    <label id="undoLbl">Geri al hakkı <select id="undoSel"><option>0</option><option>1</option><option>2</option></select></label>
+    <button id="restartBtn" title="R">Yeniden başlat</button>
+    <button id="abandonBtn" style="display:none">Bu seviyeyi bırak</button>
+    <button id="logBtn">Kaydı indir</button>
+    <button id="parityBtn">Parity testi</button>
+  </header>
+  <main>
+    <section id="boardWrap"><canvas id="board"></canvas><div id="toast"></div></section>
+    <aside id="panel">
+      <h2 id="lvlTitle"></h2><div class="meta" id="lvlMeta"></div>
+      <div><span id="progTxt"></span><div class="bar"><i id="progBar"></i></div></div>
+      <table id="stock"></table>
+      <div id="msg" class="info"></div>
+      <div class="meta">Gönderilen dalgalar:</div><div id="history"></div>
+      <details id="rules" open><summary>Kurallar (solver ile aynı)</summary><ul>
+        <li>Bir renge bas: işçiler <b>W kutu</b> taşır (sabit; sen miktar seçmezsin).</li>
+        <li>Kutular hedefte <b>arkadan öne</b> (girişe en uzaktan başlayarak) yerleşir.</li>
+        <li>Yerleşen kutu <b>kalıcı engeldir</b>; işçi yalnız boş hücrelerden yürür.</li>
+        <li>Bir boş hücreye girişten yol kalmazsa <b>seviye kaybedilir</b>.</li>
+        <li>Tüm hücreler dolunca resim tamamlanır.</li></ul></details>
+      <details id="dev"><summary>Geliştirici / araştırma bilgisi</summary><div id="devInfo" class="meta"></div></details>
+    </aside>
+  </main>
+  <footer id="controls">
+    <div id="colorBtns"></div>
+    <button id="sendBtn" title="Enter / Boşluk">Gönder</button>
+    <button id="undoBtn" title="Z">Geri al</button>
+  </footer>
+</div>
+<div id="modal"><div class="box"><div id="modalBody"></div><p style="text-align:right"><button id="modalClose">Kapat</button></p></div></div>
+<script>/*__ENGINE__*/</script>
+<script>/*__LEVELS__*/</script>
+<script>/*__VECTORS__*/</script>
+<script>/*__UI__*/</script>
+</body>
+</html>
