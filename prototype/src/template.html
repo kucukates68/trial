@@ -14,6 +14,7 @@
     <label>İpucu <select id="hintSel" title="0: yok (tek dokunuş gönderir) · 1: parçanın hedefini göster · 2: + bu parça hücreleri erişilemez yapacaksa uyar">
       <option value="0">0 · yok</option><option value="1">1 · hedef önizleme</option><option value="2">2 · önizleme + kilit uyarısı</option></select></label>
     <label>Hayalet renk <input type="checkbox" id="ghostChk" checked></label>
+    <label>Yol görünümü <select id="pathSel"><option value="0">Kapalı</option><option value="A">A · Worker izi</option><option value="B">B · Kritik alan</option><option value="C">C · İz + kritik alan</option></select></label>
     <label>Hız <select id="speedSel"><option value="1">×1</option><option value="2">×2</option><option value="4">×4</option></select></label>
     <label id="undoLbl">Geri al hakkı <select id="undoSel"><option>0</option><option>1</option><option>2</option></select></label>
     <button id="restartBtn" title="R">Yeniden başlat</button>
@@ -22,7 +23,7 @@
     <button id="parityBtn">Parity testi</button>
   </header>
   <main>
-    <section id="boardWrap"><canvas id="board"></canvas><div id="toast"></div></section>
+    <section id="boardWrap"><canvas id="board"></canvas><div id="pathPills"><button data-m="0">Kapalı</button><button data-m="A">A</button><button data-m="B">B</button><button data-m="C">C</button></div><div id="pathTag"></div><div id="toast"></div></section>
     <aside id="panel">
       <h2 id="lvlTitle"></h2><div class="meta" id="lvlMeta"></div>
       <div><span id="progTxt"></span><div class="bar"><i id="progBar"></i></div></div>

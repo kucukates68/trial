@@ -48,6 +48,10 @@ footer#controls { display:flex; flex-wrap:wrap; gap:10px; align-items:stretch; j
   .pcard { min-width:0; flex:1; padding:4px 5px; border-width:2px; } .pshape { min-height:70px; } .pn { font-size:10px; }
   #sendBtn { padding:8px 14px; width:100%; }
 }
+#pathPills { position:absolute; left:10px; top:10px; display:flex; gap:4px; z-index:2; }
+#pathPills button { padding:3px 10px; font-size:12px; border-radius:14px; background:#0009; border:1px solid #ffffff33; color:#dfe6f5; }
+#pathPills button.on { background:var(--acc); color:#111; border-color:var(--acc); font-weight:700; }
+#pathTag { position:absolute; left:12px; top:40px; font-size:11px; color:#9aa6bd; pointer-events:none; z-index:2; }
 </style>
 </head>
 <body>
@@ -58,6 +62,7 @@ footer#controls { display:flex; flex-wrap:wrap; gap:10px; align-items:stretch; j
     <label>İpucu <select id="hintSel" title="0: yok (tek dokunuş gönderir) · 1: parçanın hedefini göster · 2: + bu parça hücreleri erişilemez yapacaksa uyar">
       <option value="0">0 · yok</option><option value="1">1 · hedef önizleme</option><option value="2">2 · önizleme + kilit uyarısı</option></select></label>
     <label>Hayalet renk <input type="checkbox" id="ghostChk" checked></label>
+    <label>Yol görünümü <select id="pathSel"><option value="0">Kapalı</option><option value="A">A · Worker izi</option><option value="B">B · Kritik alan</option><option value="C">C · İz + kritik alan</option></select></label>
     <label>Hız <select id="speedSel"><option value="1">×1</option><option value="2">×2</option><option value="4">×4</option></select></label>
     <label id="undoLbl">Geri al hakkı <select id="undoSel"><option>0</option><option>1</option><option>2</option></select></label>
     <button id="restartBtn" title="R">Yeniden başlat</button>
@@ -66,7 +71,7 @@ footer#controls { display:flex; flex-wrap:wrap; gap:10px; align-items:stretch; j
     <button id="parityBtn">Parity testi</button>
   </header>
   <main>
-    <section id="boardWrap"><canvas id="board"></canvas><div id="toast"></div></section>
+    <section id="boardWrap"><canvas id="board"></canvas><div id="pathPills"><button data-m="0">Kapalı</button><button data-m="A">A</button><button data-m="B">B</button><button data-m="C">C</button></div><div id="pathTag"></div><div id="toast"></div></section>
     <aside id="panel">
       <h2 id="lvlTitle"></h2><div class="meta" id="lvlMeta"></div>
       <div><span id="progTxt"></span><div class="bar"><i id="progBar"></i></div></div>
@@ -345,13 +350,13 @@ footer#controls { display:flex; flex-wrap:wrap; gap:10px; align-items:stretch; j
   function clampInt(v, lo, hi, d) { var n = parseInt(v, 10); return isNaN(n) ? d : Math.max(lo, Math.min(hi, n)); }
   function clampNum(v, lo, hi, d) { var n = parseFloat(v); return isNaN(n) ? d : Math.max(lo, Math.min(hi, n)); }
   var cfg = { hint: clampInt(qs.get('hint'), 0, 2, 1), ghost: qs.get('ghost') !== '0', speed: clampNum(qs.get('speed'), 0.5, 200, 1),
-              undo: clampInt(qs.get('undo'), 0, 9, 0), test: qs.get('mode') === 'test', player: qs.get('player') || '' };
+              undo: clampInt(qs.get('undo'), 0, 9, 0), path: (['0', 'A', 'B', 'C'].indexOf((qs.get('path') || '').toUpperCase()) >= 0 ? qs.get('path').toUpperCase() : 'C'), test: qs.get('mode') === 'test', player: qs.get('player') || '' };
   var byId = {}; LEVELS.forEach(function (l) { byId[l.id] = l; });
   var order = (qs.get('levels') || '').split(',').filter(function (x) { return byId[x]; });
   if (!order.length) order = LEVELS.map(function (l) { return l.id; });
 
   var canvas = $('board'), ctx = canvas.getContext('2d');
-  var G = { lv: null, level: null, palette: null, st: null, visual: null, status: 'idle', history: [], selected: -1, opt: null, previewSealed: [], previewStuck: false,
+  var G = { lv: null, level: null, palette: null, st: null, visual: null, status: 'idle', history: [], selected: -1, opt: null, previewSealed: [], previewStuck: false, read: null,
             workers: [], dest: null, pops: {}, attemptNo: 0, undoLeft: 0, waveEnd: 0, pending: null, readyAt: 0, switches: 0, previews: [], cur: null, testIdx: 0,
             s: 10, ox: 0, oy: 0, dpr: 1, cw: 0, ch: 0, sealedShown: [], wonAt: 0, handSig: '' };
   var LOG = { meta: { app: 'renk-yerlestirme-prototip-v1-parca', started: new Date().toISOString(), ua: navigator.userAgent, player: cfg.player, test: cfg.test }, attempts: [] };
@@ -372,7 +377,7 @@ footer#controls { display:flex; flex-wrap:wrap; gap:10px; align-items:stretch; j
   }
   function newAttempt(reason) {
     if (G.cur && !G.cur.outcome) { G.cur.outcome = reason === 'load' ? 'switch' : 'restart'; G.cur.t1 = Date.now(); }
-    G.st = G.level.newState(); G.visual = new Uint8Array(G.st.filled); G.status = 'idle'; G.history = []; G.selected = -1; G.opt = null;
+    G.st = G.level.newState(); G.visual = new Uint8Array(G.st.filled); G.status = 'idle'; G.history = []; G.selected = -1; G.opt = null; G.read = null; G.read = null;
     G.previewSealed = []; G.previewStuck = false; G.workers = []; G.dest = null; G.pops = {}; G.pending = null; G.sealedShown = []; G.undoLeft = cfg.undo; G.wonAt = 0; G.handSig = '';
     G.cur = { level: G.lv.id, attempt: ++G.attemptNo, reason: reason, hint: cfg.hint, ghost: cfg.ghost, speed: cfg.speed, undo_budget: cfg.undo, pieces: G.level.P,
               t0: Date.now(), tokens: [], moves: [], outcome: null };
@@ -415,6 +420,56 @@ footer#controls { display:flex; flex-wrap:wrap; gap:10px; align-items:stretch; j
     ctx.stroke();
   }
   function rrect(x, y, w, h, r) { ctx.beginPath(); ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r); ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath(); }
+  var AMBER = '255,176,46';
+  // B — kritik alan: yerleşince erişimi kapanacak hücreler yumuşak kehribar nabzı (alarm kırmızısı değil); yolu uzayacaklar daha soluk
+  function drawCritical(t) {
+    var L = G.level, s = G.s, pulse = 0.5 + 0.5 * Math.sin(t * 3.2);
+    G.read.detour.forEach(function (ti) {
+      var tg = L.targets[ti], x = G.ox + tg.c * s, y = G.oy + tg.r * s;
+      ctx.fillStyle = 'rgba(' + AMBER + ',' + (0.10 + 0.08 * pulse).toFixed(3) + ')'; ctx.fillRect(x, y, s, s);
+    });
+    if (!G.read.cut.length) return;
+    ctx.save();
+    G.read.cut.forEach(function (ti) {
+      var tg = L.targets[ti], x = G.ox + tg.c * s, y = G.oy + tg.r * s;
+      ctx.fillStyle = 'rgba(' + AMBER + ',' + (0.30 + 0.25 * pulse).toFixed(3) + ')'; ctx.fillRect(x, y, s, s);
+    });
+    ctx.shadowColor = 'rgba(' + AMBER + ',.95)'; ctx.shadowBlur = s * (0.5 + 0.5 * pulse);
+    ctx.strokeStyle = 'rgba(255,150,20,' + (0.55 + 0.35 * pulse).toFixed(3) + ')'; ctx.lineWidth = Math.max(2, s * 0.09); ctx.lineJoin = 'round';
+    var set = {}; G.read.cut.forEach(function (ti) { set[ti] = 1; });
+    ctx.beginPath();
+    G.read.cut.forEach(function (ti) {   // kesilen bölgenin dış çerçevesi
+      var tg = L.targets[ti], x = G.ox + tg.c * s, y = G.oy + tg.r * s;
+      [[-1, 0, x, y, x + s, y], [1, 0, x, y + s, x + s, y + s], [0, -1, x, y, x, y + s], [0, 1, x + s, y, x + s, y + s]].forEach(function (d) {
+        var rr = tg.r + d[0], cc = tg.c + d[1], nt = (rr >= 0 && rr < L.h && cc >= 0 && cc < L.w) ? L.tIdx[rr * L.w + cc] : -1;
+        if (nt < 0 || !set[nt]) { ctx.moveTo(d[2], d[3]); ctx.lineTo(d[4], d[5]); }
+      });
+    });
+    ctx.stroke(); ctx.restore();
+  }
+  // A — worker izi: seçili parçanın GERÇEK rotasında (send'deki işçilerle aynı yollar) girişten hedefe akan ışık paketleri + silik ayak izleri
+  function drawTrail(t) {
+    var s = G.s, routes = G.read.routes, pc = col(G.level.pieces[G.selected].col), dark = mix(pc, '#1b2440', 0.45), speed = 4.5, maxLen = 0;
+    routes.forEach(function (r) { maxLen = Math.max(maxLen, r.length - 1); });
+    var cycle = maxLen / speed + 0.9, tt = t % cycle, seen = {};
+    ctx.save(); ctx.fillStyle = dark;
+    routes.forEach(function (r) {   // ayak izleri: rota hücrelerinde küçük, silik noktalar (kalıcı çizgi yok)
+      for (var i = 1; i < r.length - 1; i++) { if (seen[r[i]]) continue; seen[r[i]] = 1; ctx.globalAlpha = 0.2; ctx.beginPath(); ctx.arc(cx(r[i]), cy(r[i]), Math.max(1.5, s * 0.055), 0, 7); ctx.fill(); }
+    });
+    routes.forEach(function (r) {   // akan ışık paketi + kısa kuyruk
+      var steps = r.length - 1; if (steps <= 0) return;
+      var f = tt * speed; if (f > steps + 0.6) return;
+      for (var k = 0; k < 7; k++) {
+        var ff = f - k * 0.22; if (ff < 0 || ff > steps) continue;
+        var i = Math.min(steps - 1, Math.floor(ff)), u = ff - i, px = cx(r[i]) + (cx(r[i + 1]) - cx(r[i])) * u, py = cy(r[i]) + (cy(r[i + 1]) - cy(r[i])) * u;
+        var fade = f > steps ? Math.max(0, 1 - (f - steps) / 0.6) : 1;
+        ctx.globalAlpha = (0.75 - k * 0.1) * fade; ctx.shadowColor = pc; ctx.shadowBlur = k === 0 ? s * 0.5 : 0;
+        ctx.fillStyle = k === 0 ? '#ffffff' : dark; ctx.beginPath(); ctx.arc(px, py, Math.max(2, s * (0.11 - k * 0.008)), 0, 7); ctx.fill();
+        if (k === 0) { ctx.shadowBlur = 0; ctx.globalAlpha = 0.9 * fade; ctx.strokeStyle = dark; ctx.lineWidth = Math.max(1, s * 0.03); ctx.stroke(); }
+      }
+    });
+    ctx.restore();
+  }
   function draw() {
     var t = now(), L = G.level; if (!L) return; var s = G.s, w = L.w;
     ctx.setTransform(G.dpr, 0, 0, G.dpr, 0, 0); ctx.clearRect(0, 0, G.cw, G.ch);
@@ -438,6 +493,7 @@ footer#controls { display:flex; flex-wrap:wrap; gap:10px; align-items:stretch; j
     }
     var allT = []; for (var tt = 0; tt < L.n; tt++) allT.push(tt);
     outline(allT, 'rgba(40,50,80,.35)', Math.max(1, s * 0.05));   // figürün siluet çerçevesi
+    if (G.read && G.status === 'idle' && (cfg.path === 'B' || cfg.path === 'C')) drawCritical(t);
     // ÖNİZLEME: seçili parçanın gideceği TÜM hücreler, hafif yanıp sönen hayalet (parça rengi) + birleşik çerçeve
     if (G.opt && G.status === 'idle') {
       var pc = col(G.level.pieces[G.selected].col), blink = 0.5 + 0.18 * Math.sin(t * 5.5);
@@ -448,6 +504,7 @@ footer#controls { display:flex; flex-wrap:wrap; gap:10px; align-items:stretch; j
       outline(G.opt.cells, isDark(pc) ? '#fff' : '#111', Math.max(2, s * 0.09));
       outline(G.opt.cells, isDark(pc) ? '#111' : '#fff', Math.max(1, s * 0.03));
     }
+    if (G.read && G.status === 'idle' && (cfg.path === 'A' || cfg.path === 'C')) drawTrail(t);
     // yol boyunca hedef çerçevesi: işçiler yürürken parçanın hedefi
     if (G.dest && G.status === 'anim') outline(G.dest.cells, 'rgba(255,255,255,.75)', Math.max(1.5, s * 0.07));
     if (G.status === 'idle') G.previewSealed.forEach(function (ti3) { hatch(ti3, 'rgba(255,60,60,.95)', t, false); });
@@ -519,6 +576,19 @@ footer#controls { display:flex; flex-wrap:wrap; gap:10px; align-items:stretch; j
   }
 
   // ---------------------------------------------------------------- parça gönderme
+  // YOL OKUNABİLİRLİĞİ (yalnız görsel): seçili parçanın GERÇEK worker rotası (engine.routesFor, send ile aynı) ve yerleşince
+  // değişecek erişim. cut = boş kalıp girişten erişilemeyecek hücreler; detour = erişilebilir ama yolu belirgin uzayacak hücreler.
+  function computeRead(pi) {
+    var L = G.level, res = L.place(G.st, pi); if (!res) return null;
+    var b0 = L.bfs(G.st.filled), b1 = L.bfs(res.state.filled), placed = {}, cutSet = {}, detour = [];
+    res.placed.forEach(function (ti) { placed[ti] = 1; }); res.sealed.forEach(function (ti) { cutSet[ti] = 1; });
+    for (var ti = 0; ti < L.n; ti++) {
+      if (G.st.filled[ti] || placed[ti] || cutSet[ti]) continue;
+      var c = L.targets[ti].cell, d0 = b0.dist[c], d1 = b1.dist[c];
+      if (d0 >= 0 && d1 >= 0 && d1 > d0 + 1) detour.push(ti);
+    }
+    return { routes: L.routesFor(res), cut: res.sealed.slice(), detour: detour, stuck: res.stuck, won: res.won };
+  }
   function feasibleNow() { return G.level.options(G.st); }
   function send(pi) {
     if (G.status !== 'idle') return;
@@ -538,8 +608,8 @@ footer#controls { display:flex; flex-wrap:wrap; gap:10px; align-items:stretch; j
     a.tokens.push(p.id);
     a.moves.push({ i: a.moves.length + 1, token: p.id, color: p.ch, size: p.cells.length, shape: JSON.stringify(p.cells), t_ms: Date.now() - a.t0, decide_ms: Math.round((t0 - G.readyAt) * 1000),
                    preview_switches: G.switches, previewed: G.previews.slice(), placed: res.placed.length, pos: [res.pos.r, res.pos.c], options_before: optsBefore,
-                   available_before: L.remainingPieces(before), filled_after: L.filledCount(res.state.filled), sealed_after: res.sealed.length > 0, stuck_after: res.stuck, preview_shown: cfg.hint >= 1 });
-    G.selected = -1; G.opt = null; G.previewSealed = []; G.previewStuck = false; G.status = 'anim'; saveLog(); refresh();
+                   available_before: L.remainingPieces(before), filled_after: L.filledCount(res.state.filled), sealed_after: res.sealed.length > 0, stuck_after: res.stuck, preview_shown: cfg.hint >= 1, path_mode: cfg.path, pv_cut: G.read ? G.read.cut.length : null, pv_detour: G.read ? G.read.detour.length : null });
+    G.selected = -1; G.opt = null; G.read = null; G.previewSealed = []; G.previewStuck = false; G.status = 'anim'; saveLog(); refresh();
   }
   function finishWave() {
     G.workers = []; G.dest = null; G.readyAt = now(); G.switches = 0; G.previews = [];
@@ -559,7 +629,7 @@ footer#controls { display:flex; flex-wrap:wrap; gap:10px; align-items:stretch; j
     var o = L.chooseTarget(G.st.filled, pi); if (!o) { toast('Bu parça şu an hiçbir yere yerleşemez'); return; }
     if (cfg.hint === 0) { send(pi); return; }
     if (G.selected === pi) { send(pi); return; }
-    G.selected = pi; G.opt = o; G.switches++; G.previews.push(p.id);
+    G.selected = pi; G.opt = o; G.read = computeRead(pi); G.switches++; G.previews.push(p.id);
     G.previewSealed = []; G.previewStuck = false;
     var text = 'Önizleme — ' + G.palette.names[p.col] + ' parça, ' + p.cells.length + ' kutu. Hedef hücreler tahtada yanıp sönüyor. Göndermek için aynı parçaya ya da Gönder\'e bas; ya da başka parçanın nereye gideceğine bak.', cls = 'info';
     if (cfg.hint >= 2) {
@@ -573,7 +643,7 @@ footer#controls { display:flex; flex-wrap:wrap; gap:10px; align-items:stretch; j
   }
   function undo() {
     if (G.undoLeft <= 0 || !G.history.length || G.status === 'anim' || G.status === 'won') return;
-    var h = G.history.pop(); G.st = h.before; G.visual = new Uint8Array(h.before.filled); G.status = 'idle'; G.undoLeft--; G.sealedShown = []; G.opt = null; G.selected = -1; G.previewSealed = [];
+    var h = G.history.pop(); G.st = h.before; G.visual = new Uint8Array(h.before.filled); G.status = 'idle'; G.undoLeft--; G.sealedShown = []; G.opt = null; G.read = null; G.selected = -1; G.previewSealed = [];
     G.cur.outcome = null; G.cur.tokens.push('U'); G.cur.moves.push({ i: G.cur.moves.length + 1, token: 'U', t_ms: Date.now() - G.cur.t0 }); G.readyAt = now(); G.switches = 0; G.previews = [];
     setMsg('Son parça geri alındı. Kalan geri alma: ' + G.undoLeft, 'info'); saveLog(); refresh();
   }
@@ -623,7 +693,8 @@ footer#controls { display:flex; flex-wrap:wrap; gap:10px; align-items:stretch; j
     var sp = $('selShape'), si = $('selInfo');
     if (G.selected >= 0 && G.opt) {
       var p = L.pieces[G.selected]; sp.style.display = ''; drawPiece(sp, p, 22, col(p.col));
-      si.textContent = 'Seçili: ' + G.palette.names[p.col] + ' · ' + p.cells.length + ' kutu → tahtada ' + G.opt.cells.length + ' hücre işaretli';
+      si.textContent = 'Seçili: ' + G.palette.names[p.col] + ' · ' + p.cells.length + ' hücre → tahtada ' + G.opt.cells.length + ' hücre işaretli';
+      if (G.read && (cfg.path === 'B' || cfg.path === 'C')) si.textContent += ' · ' + (G.read.won ? 'resmi tamamlar' : G.read.cut.length ? G.read.cut.length + ' hücrenin yolu kapanır' : G.read.detour.length ? G.read.detour.length + ' hücrenin yolu uzar' : 'yolları etkilemez');
     } else { sp.style.display = 'none'; si.textContent = 'Parça seç: şekli burada, hedefi tahtada görünür.'; }
     $('sendBtn').disabled = !(idle && G.selected >= 0); $('sendBtn').style.display = cfg.hint === 0 ? 'none' : '';
     $('undoBtn').disabled = !(G.undoLeft > 0 && G.history.length && (G.status === 'idle' || G.status === 'sealed' || G.status === 'stuck')); $('undoBtn').style.display = cfg.undo > 0 ? '' : 'none';
@@ -637,7 +708,14 @@ footer#controls { display:flex; flex-wrap:wrap; gap:10px; align-items:stretch; j
     if (s.heuristics) t.push('sezgiseller (kazanır?): ' + Object.keys(s.heuristics).map(function (k) { return k + '=' + (s.heuristics[k] ? 'E' : 'H'); }).join(' '));
     $('devInfo').innerHTML = 'Çözücü ölçümü (araştırma; oyunda gösterilmez):<br>' + t.join(' · ') + '<br>Kayıt: ' + LOG.attempts.length + ' deneme.';
   }
+  var PATH_NAMES = { '0': 'Kapalı', A: 'A · Worker izi', B: 'B · Kritik alan', C: 'C · İz + kritik alan' };
+  function setPathMode(m) {
+    cfg.path = m; if ($('pathSel')) $('pathSel').value = m;
+    Array.prototype.forEach.call(document.querySelectorAll('#pathPills button'), function (b) { b.classList.toggle('on', b.dataset.m === m); });
+    $('pathTag').textContent = 'Yol görünümü: ' + PATH_NAMES[m]; if (G.level) refresh();
+  }
   function fillSelectors() {
+    setPathMode(cfg.path);
     $('hintSel').value = String(cfg.hint); $('ghostChk').checked = cfg.ghost; $('speedSel').value = [1, 2, 4].indexOf(cfg.speed) >= 0 ? String(cfg.speed) : '1'; $('undoSel').value = String(cfg.undo);
     if (cfg.test) { $('lvlLbl').style.display = 'none'; $('dev').style.display = 'none'; $('parityBtn').style.display = 'none'; $('hintSel').parentNode.style.display = 'none'; $('ghostChk').parentNode.style.display = 'none'; $('undoLbl').style.display = 'none'; }
     if (!$('levelSel').options.length) $('levelSel').innerHTML = LEVELS.map(function (l) { return '<option value="' + l.id + '">' + l.id + ' · ' + l.name + ' (' + l.cells + ' hücre, ' + l.pieces.length + ' parça)</option>'; }).join('');
@@ -688,6 +766,8 @@ footer#controls { display:flex; flex-wrap:wrap; gap:10px; align-items:stretch; j
   $('modalClose').addEventListener('click', function () { $('modal').classList.remove('show'); });
   $('levelSel').addEventListener('change', function () { loadLevel(this.value); });
   $('hintSel').addEventListener('change', function () { cfg.hint = parseInt(this.value, 10); newAttempt('restart'); });
+  $('pathSel').addEventListener('change', function () { setPathMode(this.value); });
+  Array.prototype.forEach.call(document.querySelectorAll('#pathPills button'), function (b) { b.addEventListener('click', function () { setPathMode(b.dataset.m); }); });
   $('ghostChk').addEventListener('change', function () { cfg.ghost = this.checked; });
   $('speedSel').addEventListener('change', function () { cfg.speed = parseFloat(this.value); });
   $('undoSel').addEventListener('change', function () { cfg.undo = parseInt(this.value, 10); newAttempt('restart'); });
@@ -708,6 +788,9 @@ footer#controls { display:flex; flex-wrap:wrap; gap:10px; align-items:stretch; j
     select: function (x) { select(pidx(x)); },
     state: function () { return { status: G.status, filled: G.level.filledCount(G.st.filled), n: G.level.n, waves: G.history.length, level: G.lv.id, sealed: G.sealedShown.length, selected: G.selected,
                                   left: G.level.remainingPieces(G.st), undoLeft: G.undoLeft, opt: G.opt ? G.opt.cells.length : 0 }; },
+    read: function () { return G.read ? { cut: G.read.cut.slice(), detour: G.read.detour.slice(), stuck: G.read.stuck, won: G.read.won, routes: G.read.routes.map(function (r) { return r.slice(); }) } : null; },
+    workerPaths: function () { return G.workers.map(function (w) { return w.path.slice(); }); },
+    setPath: setPathMode, pathMode: function () { return cfg.path; },
     previewCells: function () { return G.opt ? G.opt.cells.slice().sort(function (a, b) { return a - b; }) : null; },
     destCells: function () { return G.dest ? G.dest.cells.slice().sort(function (a, b) { return a - b; }) : null; },
     restart: function () { newAttempt('restart'); }, loadLevel: loadLevel, downloadLog: downloadLog, getLog: function () { return LOG; }, runParity: runParity,
