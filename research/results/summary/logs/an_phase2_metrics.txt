@@ -1,0 +1,211 @@
+== A) YENİDEN ÜRETİLEBİLİRLİK (broad_v2 vs broad)  n = 3921
+max |Δ dens_risky| = 1.1102230246251565e-16 | max |Δ e_crit| = 1.7763568394002505e-15 | greedy farkı = 0
+
+mistake_mass>0 olan (hata yapılabilir) aday: 3386 / 3921
+
+== B) DAĞILIMLAR: tüm çözülebilir adaylar
+                           count     mean    10%     50%     90%
+visible_mean              3921.0    2.355  1.835   2.427   2.630
+safe_mean                 3921.0    2.073  1.613   2.121   2.438
+mbf_mean                  3921.0    1.599  1.000   1.667   2.094
+cpr_risky                 3386.0    0.563  0.504   0.561   0.630
+hazard_mean               3921.0    0.106  0.000   0.074   0.258
+dh_exp_mean               3386.0    1.073  1.000   1.000   1.195
+dh_min_mean               3386.0    1.047  1.000   1.000   1.139
+dh_max_mean               3386.0    1.137  1.000   1.000   1.341
+dh_p50                    3386.0    1.021  1.000   1.000   1.000
+dh_instant_share          3386.0    0.960  0.872   1.000   1.000
+dh_latent_share           3386.0    0.040  0.000   0.000   0.128
+dh_band35_share           3386.0    0.010  0.000   0.000   0.006
+blind_progress_mean       3386.0    0.087  0.055   0.082   0.125
+blind_progress_ge5_share  3386.0    0.920  0.672   1.000   1.000
+latent_doom_mass          3921.0    0.123  0.000   0.000   0.287
+abc_initial               3921.0    0.084  0.000   0.000   0.000
+abc_mean                  3921.0    1.405  0.350   1.214   2.677
+abc_max_dag               3921.0    7.062  3.000   6.000  12.000
+abc_ge3_share             3921.0    0.200  0.002   0.164   0.456
+abc_early                 3921.0    0.624  0.056   0.445   1.426
+abc_mid                   3921.0    2.121  0.540   1.845   4.015
+abc_late                  3921.0    1.499  0.202   1.250   3.112
+abc_distinct_path         3921.0    7.443  2.180   6.860  13.610
+abc_concurrency           3900.0    0.187  0.128   0.183   0.250
+pp_locked_mean            3921.0    0.066  0.013   0.056   0.134
+pp_locked_max             3921.0    0.396  0.143   0.385   0.667
+closure_at_40pct           319.0    0.000  0.000   0.000   0.000
+closure_lead_max           330.0    0.000  0.000   0.000   0.000
+corr_progress_hazard      3386.0    0.123 -0.133   0.123   0.390
+corr_progress_locked      3900.0    0.481  0.113   0.500   0.816
+filler_ratio              3921.0    0.767  0.457   0.824   1.000
+filler_strict             3921.0    0.473  0.177   0.378   1.000
+filler_to_decision        3386.0  102.400  0.774   3.385  38.322
+e_moves                   3921.0   13.288  9.000  13.000  18.000
+e_meaningful              3921.0    7.030  0.000   7.133  13.042
+e_risky                   3921.0    3.080  0.000   2.233   7.312
+e_crit                    3921.0    1.604  0.000   1.013   4.013
+e_forced                  3921.0    2.568  1.181   1.978   5.031
+
+   puzzle verimi adayları (greedy başarısız & dens_risky>=0.25), n = 640
+                          count    mean    10%     50%     90%
+visible_mean              640.0   2.507  2.267   2.523   2.732
+safe_mean                 640.0   1.820  1.413   1.866   2.156
+mbf_mean                  640.0   1.426  1.020   1.403   1.876
+cpr_risky                 640.0   0.525  0.465   0.528   0.586
+hazard_mean               640.0   0.255  0.140   0.233   0.396
+dh_exp_mean               640.0   1.292  1.000   1.096   1.889
+dh_min_mean               640.0   1.180  1.000   1.076   1.524
+dh_max_mean               640.0   1.558  1.000   1.139   2.671
+dh_p50                    640.0   1.095  1.000   1.000   1.000
+dh_instant_share          640.0   0.849  0.547   0.927   1.000
+dh_latent_share           640.0   0.151  0.000   0.073   0.453
+dh_band35_share           640.0   0.043  0.000   0.000   0.174
+blind_progress_mean       640.0   0.110  0.056   0.098   0.185
+blind_progress_ge5_share  640.0   0.927  0.698   1.000   1.000
+latent_doom_mass          640.0   0.575  0.000   0.182   1.723
+abc_initial               640.0   0.162  0.000   0.000   1.000
+abc_mean                  640.0   2.198  0.957   2.010   3.670
+abc_max_dag               640.0   9.509  5.000   9.000  15.000
+abc_ge3_share             640.0   0.334  0.101   0.323   0.564
+abc_early                 640.0   1.055  0.222   0.907   2.093
+abc_mid                   640.0   3.261  1.431   2.883   5.499
+abc_late                  640.0   2.318  0.685   2.131   4.186
+abc_distinct_path         640.0  10.960  5.188  10.590  16.986
+abc_concurrency           640.0   0.204  0.136   0.198   0.284
+pp_locked_mean            640.0   0.099  0.036   0.091   0.172
+pp_locked_max             640.0   0.436  0.188   0.429   0.706
+closure_at_40pct          100.0   0.000  0.000   0.000   0.000
+closure_lead_max          104.0   0.000  0.000   0.000   0.000
+corr_progress_hazard      640.0   0.121 -0.295   0.177   0.448
+corr_progress_locked      640.0   0.585  0.220   0.649   0.851
+filler_ratio              640.0   0.474  0.222   0.503   0.681
+filler_strict             640.0   0.258  0.134   0.246   0.404
+filler_to_decision        640.0   1.104  0.285   1.011   2.138
+e_moves                   640.0  12.628  9.000  12.000  18.000
+e_meaningful              640.0   9.286  6.330   8.770  13.786
+e_risky                   640.0   6.635  3.509   6.004  10.589
+e_crit                    640.0   3.895  1.686   3.316   6.724
+e_forced                  640.0   1.533  1.000   1.385   2.215
+
+== C) DEADLOCK HORIZON
+Hata kütlesinin payı: anında kilitlenen 0.913 | gecikmeli (DH>=2) 0.087 (tüm adaylarda, hata kütlesi ağırlıklı)
+Adayların DH_exp dağılımı: <1.5: 0.96 | 1.5–3: 0.04 | 3–5: 0.00 | >5: 0.00
+Hata-kütlesi ağırlıklı, DH_exp∈[3,5] payı (aday ortalaması): 0.010 ; en az %10 hata kütlesi bu bantta olan aday: 0.032
+Kör ilerleme (hata sonrası kilitlenme görünene dek resmin tamamlanan payı): ort 0.087 | ≥%5 olan aday payı 0.940
+
+   cm bazında:
+      dh_exp_mean  dh_instant_share  dh_band35_share  blind_progress_mean  latent_doom_mass
+cm                                                                                         
+CM1         1.000             1.000            0.000                0.080             0.000
+CM10        1.105             0.950            0.016                0.088             0.128
+CM2         1.000             1.000            0.000                0.083             0.000
+CM3         1.007             0.996            0.000                0.085             0.002
+CM4         1.027             0.983            0.002                0.080             0.019
+CM5         1.261             0.814            0.012                0.082             1.164
+CM6         1.019             0.988            0.002                0.086             0.017
+CM7         1.259             0.868            0.040                0.102             0.493
+CM8         1.144             0.920            0.018                0.094             0.237
+CM9         1.010             0.994            0.001                0.082             0.009
+
+   family bazında:
+                  dh_exp_mean  dh_instant_share  dh_band35_share  blind_progress_mean  latent_doom_mass
+family                                                                                                 
+BOTTLENECK              1.084             0.956            0.012                0.086             0.148
+CORRIDOR                1.086             0.954            0.012                0.090             0.195
+MULTI                   1.057             0.965            0.007                0.086             0.109
+OPEN                    1.043             0.971            0.002                0.086             0.095
+SPLIT                   1.050             0.967            0.005                0.086             0.125
+SPLIT+BOTTLENECK        1.102             0.951            0.015                0.087             0.162
+
+   W/dalga kovası:
+        dh_exp_mean  dh_instant_share  blind_progress_mean
+bin                                                       
+w07_10        1.092             0.947                0.123
+w11_15        1.080             0.957                0.085
+w16_20        1.051             0.972                0.058
+
+== D) PATH PRESSURE / CLOSURE
+closure_at_40pct: dolu (nan olmayan) aday 319 | ortalama 0.0 | closure_lead_max ortalama 0.0
+=> kazanan yolda 'kritik geçitler ilerlemeden önce kapanmış' durumu yapısal olarak yok (kapanış yalnız bağımlılar dolunca güvenli).
+pp_locked (kilitli boş-hücre payı): ortalama 0.066, tepe (aday ort.) 0.396 | corr(ilerleme, kilitli pay) medyan 0.50 | corr(ilerleme, hazard) medyan 0.12 (pozitif aday payı 0.65)
+
+== E) BRANCHING
+Görünür seçenek ort 2.35 (renk sayısı 3) | güvenli seçenek ort 2.07 | anlamlı (kümelenmiş) seçenek ort 1.60
+kritik durumlarda CPR (güvenli/yasal) ort 0.56 (kolay≈0.67, zor≈0.33 referansı Gemini §17)
+anlamlı/görünür oran: ort 0.70 ; puzzle verimi adaylarında 0.57
+
+== F) ACTIVE BOTTLENECK COUNT
+abc_mean ort 1.41 | abc_max_dag ort 7.1 | eşzamanlı (>=3) hamle payı 0.20 | yol başına farklı dar boğaz 7.4 | eşzamanlılık 0.19
+ilerleme üçte birleri (erken/orta/geç) abc: {'abc_early': 0.62, 'abc_mid': 2.12, 'abc_late': 1.5}
+
+   cm bazında:
+      abc_initial  abc_mean  abc_ge3_share  abc_concurrency  pp_locked_mean  e_risky
+cm                                                                                  
+CM1          0.09      1.15           0.16             0.20            0.06     1.78
+CM10         0.08      1.81           0.27             0.20            0.09     3.30
+CM2          0.09      1.21           0.17             0.20            0.06     2.08
+CM3          0.09      1.07           0.14             0.15            0.05     0.84
+CM4          0.09      1.08           0.14             0.19            0.05     1.89
+CM5          0.01      1.72           0.25             0.13            0.07    10.82
+CM6          0.09      1.21           0.17             0.18            0.06     2.04
+CM7          0.07      1.98           0.30             0.18            0.08     6.55
+CM8          0.09      1.85           0.28             0.19            0.08     5.61
+CM9          0.09      1.29           0.18             0.20            0.06     2.09
+
+   family bazında:
+                  abc_initial  abc_mean  abc_ge3_share  abc_concurrency  pp_locked_mean  e_risky
+family                                                                                          
+BOTTLENECK               0.53      2.04           0.30             0.23            0.10     4.52
+CORRIDOR                 0.00      1.20           0.17             0.18            0.05     3.60
+MULTI                    0.00      1.33           0.19             0.18            0.06     2.43
+OPEN                     0.00      0.50           0.05             0.17            0.02     1.57
+SPLIT                    0.00      0.90           0.11             0.17            0.04     2.34
+SPLIT+BOTTLENECK         0.00      1.98           0.31             0.20            0.10     3.60
+
+== G) FILLER / DECISION
+filler_ratio ort 0.767 (p10 0.46, p50 0.82, p90 1.00) | strict 0.473 | puzzle-verimi adaylarında 0.474
+
+== H) SÜRÜCÜLER (η², çözülebilir adaylar; src, cm, layout, bin)
+  m = smf.ols(formula, data=df).fit()
+  res = self.wald_test(
+  res = self.wald_test(
+  res = self.wald_test(
+  m = smf.ols(formula, data=df).fit()
+  res = self.wald_test(
+  res = self.wald_test(
+  res = self.wald_test(
+  m = smf.ols(formula, data=df).fit()
+  res = self.wald_test(
+  res = self.wald_test(
+  res = self.wald_test(
+  m = smf.ols(formula, data=df).fit()
+  res = self.wald_test(
+  res = self.wald_test(
+  res = self.wald_test(
+                       src     cm  layout    bin  src:cm  cm:layout       n
+dh_exp_mean          0.010  0.161   0.028  0.013   0.054      0.074  3386.0
+dh_instant_share     0.008  0.210   0.028  0.022   0.057      0.074  3386.0
+blind_progress_mean  0.005  0.045   0.005  0.545   0.025      0.038  3386.0
+visible_mean         0.003  0.828   0.006  0.047   0.019      0.012  3921.0
+mbf_mean             0.013  0.073   0.073  0.001   0.086      0.245  3921.0
+cpr_risky            0.033  0.274   0.099  0.038   0.073      0.100  3386.0
+abc_mean             0.154  0.154   0.343  0.003   0.055      0.043  3921.0
+abc_ge3_share        0.150  0.142   0.304  0.003   0.045      0.050  3921.0
+abc_concurrency      0.046  0.090   0.146  0.200   0.021      0.040  3900.0
+pp_locked_mean       0.150  0.092   0.414  0.004   0.038      0.032  3921.0
+filler_ratio         0.041  0.549   0.152  0.009   0.053      0.080  3921.0
+
+== I) METRİKLER ARASI ÖRTÜŞME (Spearman)
+                     dh_exp_mean  dh_instant_share  blind_progress_mean  abc_mean  abc_ge3_share  pp_locked_mean  mbf_mean  cpr_risky  filler_ratio  e_risky  e_crit  dens_risky  rec1
+dh_exp_mean                 1.00             -1.00                 0.22      0.29           0.29            0.21     -0.45      -0.42         -0.62     0.59    0.60        0.62 -1.00
+dh_instant_share           -1.00              1.00                -0.22     -0.29          -0.28           -0.21      0.45       0.43          0.62    -0.59   -0.60       -0.62  1.00
+blind_progress_mean         0.22             -0.22                 1.00     -0.08          -0.07           -0.14     -0.06      -0.19         -0.15    -0.10   -0.01        0.15 -0.22
+abc_mean                    0.29             -0.29                -0.08      1.00           0.96            0.91      0.15      -0.28         -0.60     0.61    0.62        0.60 -0.34
+abc_ge3_share               0.29             -0.28                -0.07      0.96           1.00            0.87      0.17      -0.27         -0.60     0.61    0.62        0.60 -0.34
+pp_locked_mean              0.21             -0.21                -0.14      0.91           0.87            1.00      0.18      -0.22         -0.51     0.53    0.55        0.51 -0.27
+mbf_mean                   -0.45              0.45                -0.06      0.15           0.17            0.18      1.00       0.34         -0.10     0.10    0.11        0.10  0.23
+cpr_risky                  -0.42              0.43                -0.19     -0.28          -0.27           -0.22      0.34       1.00          0.41    -0.34   -0.59       -0.41  0.43
+filler_ratio               -0.62              0.62                -0.15     -0.60          -0.60           -0.51     -0.10       0.41          1.00    -0.97   -0.95       -1.00  0.61
+e_risky                     0.59             -0.59                -0.10      0.61           0.61            0.53      0.10      -0.34         -0.97     1.00    0.96        0.97 -0.59
+e_crit                      0.60             -0.60                -0.01      0.62           0.62            0.55      0.11      -0.59         -0.95     0.96    1.00        0.95 -0.60
+dens_risky                  0.62             -0.62                 0.15      0.60           0.60            0.51      0.10      -0.41         -1.00     0.97    0.95        1.00 -0.61
+rec1                       -1.00              1.00                -0.22     -0.34          -0.34           -0.27      0.23       0.43          0.61    -0.59   -0.60       -0.61  1.00
+PCA açıklanan varyans: [0.505 0.192 0.113 0.071 0.049 0.035] | %90 için bileşen: 5

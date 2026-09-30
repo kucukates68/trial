@@ -1,0 +1,7 @@
+family,dh_exp_mean,dh_instant_share,dh_band35_share,blind_progress_mean,latent_doom_mass
+BOTTLENECK,1.084,0.956,0.012,0.086,0.148
+CORRIDOR,1.086,0.954,0.012,0.09,0.195
+MULTI,1.057,0.965,0.007,0.086,0.109
+OPEN,1.043,0.971,0.002,0.086,0.095
+SPLIT,1.05,0.967,0.005,0.086,0.125
+SPLIT+BOTTLENECK,1.102,0.951,0.015,0.087,0.162

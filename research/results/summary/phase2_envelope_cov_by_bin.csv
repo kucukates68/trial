@@ -1,0 +1,4 @@
+bin,cov_tol,covA_tol,in_tol_critical_decisions,in_tol_recovery_horizon,in_tol_filler_ratio,in_tol_trap_timing
+w07_10,0.41,0.31,0.15,0.03,0.24,0.82
+w11_15,0.44,0.35,0.29,0.02,0.24,0.77
+w16_20,0.43,0.35,0.38,0.01,0.26,0.69

@@ -111,6 +111,67 @@ class Level:
         self._info[s] = r
         return r
 
+    def locked_mask(self, s):
+        """bitmask of *live bottlenecks* at state s: unfilled target cells that dominate >=1 other unfilled
+        target (every entrance path to that other target passes through the cell).  Cooper-Harvey-Kennedy
+        dominators on the open graph with a virtual root joined to all entrances."""
+        N = self.N
+        nb, tio, ent = self.nbrs, self.ti_of_node, self.ent
+        filled = lambda v: tio[v] >= 0 and (s >> tio[v]) & 1
+        ent_set = set(ent)
+        visited = [False] * (N + 1)
+        post = []
+        visited[N] = True
+        stack = [(N, iter(ent))]
+        while stack:
+            u, it = stack[-1]
+            for v in it:
+                if not visited[v] and not filled(v):
+                    visited[v] = True
+                    stack.append((v, iter(nb[v])))
+                    break
+            else:
+                post.append(u)
+                stack.pop()
+        po = [-1] * (N + 1)
+        for i, u in enumerate(post):
+            po[u] = i
+        idom = [-1] * (N + 1)
+        idom[N] = N
+        rpo = post[::-1]
+        changed = True
+        while changed:
+            changed = False
+            for v in rpo[1:]:
+                new = -1
+                cand = [u for u in nb[v] if visited[u] and idom[u] != -1]
+                if v in ent_set and idom[N] != -1:
+                    cand.append(N)
+                for p in cand:
+                    if new == -1:
+                        new = p
+                    else:
+                        a, b = p, new
+                        while a != b:
+                            while po[a] < po[b]:
+                                a = idom[a]
+                            while po[b] < po[a]:
+                                b = idom[b]
+                        new = a
+                if idom[v] != new:
+                    idom[v] = new
+                    changed = True
+        has = [False] * (N + 1)
+        for v in post[:-1]:
+            if tio[v] >= 0 or has[v]:
+                has[idom[v]] = True
+        mask = 0
+        for ti in range(self.n):
+            nd = self.tnode[ti]
+            if not (s >> ti) & 1 and visited[nd] and has[nd]:
+                mask |= 1 << ti
+        return mask
+
     def depth_profile(self):
         """initial reach depth of every target (-1 = unreachable)."""
         d = self.bfs(0)
@@ -118,7 +179,173 @@ class Level:
 
 
 # ------------------------------------------------------------------ analysis
-def analyze(grid: str, W: int, sims: int = 1500, seed: int = 1, want_desc=None):
+def _wmean(vals, w):
+    sw = sum(w)
+    return sum(v * x for v, x in zip(vals, w)) / sw if sw > 0 else float('nan')
+
+
+def _wquant(vals, w, q):
+    if not vals:
+        return float('nan')
+    z = sorted(zip(vals, w))
+    tot = sum(w)
+    acc = 0.0
+    for v, x in z:
+        acc += x
+        if acc >= q * tot:
+            return v
+    return z[-1][0]
+
+
+def extra_metrics(L, order, nwin, pwin, sd, onwin, res, seed=11):
+    """Phase-1 metric upgrade.  All expectations are over the 'uniform among SAFE moves' path (mass pi);
+    mistakes are weighted by the chance that a player who otherwise plays safely errs there
+    (pi(s)/|legal(s)| per losing move).  Definitions in REPORT_PHASE2.md."""
+    full = L.full
+    n = L.n
+    pop = {s: s.bit_count() for s in order}
+    out = {}
+    pi = {s: 0.0 for s in onwin}
+    pi[0] = 1.0
+    for s in sorted(onwin, key=lambda x: pop[x]):
+        if s == full:
+            continue
+        good = [t for _, t in L.info(s)[1] if nwin[t]]
+        for t in good:
+            pi[t] += pi[s] / len(good)
+    locked = {s: L.locked_mask(s) for s in onwin if s != full}
+    # ---- deadlock horizon / blind progress (non-winning side)
+    es, lmax, bg = {}, {}, {}
+    for u in order:
+        if nwin[u]:
+            continue
+        sealed, mv = L.info(u)
+        if sealed:
+            es[u] = 0.0; lmax[u] = 0; bg[u] = 0.0
+        else:
+            ch = [t for _, t in mv]
+            es[u] = 1 + sum(es[t] for t in ch) / len(ch)
+            lmax[u] = 1 + max(lmax[t] for t in ch)
+            bg[u] = sum((pop[t] - pop[u]) / n + bg[t] for t in ch) / len(ch)
+    W_, DHe, DHm, DHx, BP, LAT = [], [], [], [], [], []
+    for s in onwin:
+        if s == full:
+            continue
+        mv = L.info(s)[1]
+        for _, t in mv:
+            if not nwin[t]:
+                W_.append(pi[s] / len(mv)); DHe.append(1 + es[t]); DHm.append(sd[t] + 1); DHx.append(1 + lmax[t])
+                BP.append((pop[t] - pop[s]) / n + bg[t]); LAT.append(0 if L.info(t)[0] else 1)
+    out['mistake_mass'] = sum(W_)
+    if W_:
+        out['dh_exp_mean'] = _wmean(DHe, W_); out['dh_min_mean'] = _wmean(DHm, W_); out['dh_max_mean'] = _wmean(DHx, W_)
+        out['dh_p50'] = _wquant(DHe, W_, 0.5); out['dh_max_overall'] = max(DHx)
+        out['dh_instant_share'] = _wmean([1.0 if m == 1 else 0.0 for m in DHm], W_)
+        out['dh_latent_share'] = 1 - out['dh_instant_share']
+        out['dh_band35_share'] = _wmean([1.0 if 3 <= e <= 5 else 0.0 for e in DHe], W_)
+        out['blind_progress_mean'] = _wmean(BP, W_)
+        out['blind_progress_ge5_share'] = _wmean([1.0 if b >= 0.05 else 0.0 for b in BP], W_)
+        out['latent_doom_mass'] = sum(w for w, l in zip(W_, LAT) if l)
+    else:
+        for k in ('dh_exp_mean', 'dh_min_mean', 'dh_max_mean', 'dh_p50', 'dh_max_overall', 'dh_instant_share', 'dh_latent_share',
+                  'dh_band35_share', 'blind_progress_mean', 'blind_progress_ge5_share'):
+            out[k] = float('nan')
+        out['latent_doom_mass'] = 0.0
+    # ---- state-level aggregates under pi
+    D0 = locked[0]
+    nD0 = D0.bit_count()
+    mass = mass2 = massr = 0.0
+    sV = sG = sM = sH = sCpr = sAbc = sAbc3 = sLf = 0.0
+    maxAbc = 0; maxLf = 0.0
+    third = [[0.0, 0.0] for _ in range(3)]
+    c40 = [0.0, 0.0]
+    clo_lead = 0.0
+    xs, hs, ls = [], [], []
+    wts = []
+    for s, p in pi.items():
+        if s == full or p <= 0:
+            continue
+        mv = L.info(s)[1]
+        nL = len(mv)
+        good = [t for _, t in mv if nwin[t]]
+        nG = len(good)
+        nB = nL - nG
+        prog = pop[s] / n
+        ab = locked[s].bit_count()
+        unf = n - pop[s]
+        lf = ab / unf if unf else 0.0
+        mass += p
+        sV += p * nL; sG += p * nG
+        haz = nB / nL
+        sH += p * haz
+        if nL >= 2:
+            mass2 += p
+            ps = sorted(pwin[t] for t in good)
+            m = 1
+            for a, b in zip(ps, ps[1:]):
+                if b - a >= 0.05:
+                    m += 1
+            sM += p * m
+        if nB >= 1 and nL >= 2:
+            massr += p
+            sCpr += p * (nG / nL)
+        sAbc += p * ab
+        sAbc3 += p * (1.0 if ab >= 3 else 0.0)
+        sLf += p * lf
+        maxAbc = max(maxAbc, ab)
+        maxLf = max(maxLf, lf)
+        t3 = min(2, int(prog * 3))
+        third[t3][0] += p * ab; third[t3][1] += p
+        if 0.35 <= prog <= 0.45 and nD0:
+            c40[0] += p * ((D0 & s).bit_count() / nD0); c40[1] += p
+        if nD0:
+            clo_lead = max(clo_lead, (D0 & s).bit_count() / nD0 - prog)
+        xs.append(prog); hs.append(haz); ls.append(lf); wts.append(p)
+    out['visible_mean'] = sV / mass
+    out['safe_mean'] = sG / mass
+    out['mbf_mean'] = (sM / mass2) if mass2 > 0 else float('nan')
+    out['mbf_over_visible'] = (sM / mass2) / (sV / mass) if mass2 > 0 else float('nan')
+    out['cpr_risky'] = (sCpr / massr) if massr > 0 else float('nan')
+    out['hazard_mean'] = sH / mass
+    out['abc_mean'] = sAbc / mass; out['abc_max_dag'] = maxAbc; out['abc_ge3_share'] = sAbc3 / mass
+    for i, nm in enumerate(('early', 'mid', 'late')):
+        out['abc_' + nm] = third[i][0] / third[i][1] if third[i][1] > 0 else float('nan')
+    out['pp_locked_mean'] = sLf / mass; out['pp_locked_max'] = maxLf
+    out['closure_at_40pct'] = c40[0] / c40[1] if c40[1] > 0 else float('nan')
+    out['closure_lead_max'] = clo_lead if nD0 else float('nan')
+    out['abc_initial'] = nD0
+
+    def wcorr(a, b, w):
+        sw = sum(w)
+        ma = _wmean(a, w); mb = _wmean(b, w)
+        va = sum(x * (u - ma) ** 2 for u, x in zip(a, w)) / sw
+        vb = sum(x * (u - mb) ** 2 for u, x in zip(b, w)) / sw
+        if va < 1e-12 or vb < 1e-12:
+            return float('nan')
+        return sum(x * (u - ma) * (v - mb) for u, v, x in zip(a, b, w)) / sw / math.sqrt(va * vb)
+    out['corr_progress_hazard'] = wcorr(xs, hs, wts)
+    out['corr_progress_locked'] = wcorr(xs, ls, wts)
+    # distinct bottlenecks per trajectory (sequential vs simultaneous)
+    rng = random.Random(seed)
+    dist = []
+    for _ in range(100):
+        s = 0; acc = 0
+        while s != full:
+            acc |= locked[s]
+            good = [t for _, t in L.info(s)[1] if nwin[t]]
+            s = rng.choice(good)
+        dist.append(acc.bit_count())
+    out['abc_distinct_path'] = sum(dist) / len(dist)
+    out['abc_concurrency'] = out['abc_mean'] / out['abc_distinct_path'] if out['abc_distinct_path'] > 0 else float('nan')
+    # ---- filler vs decision
+    em = max(res['e_moves'], 1e-9)
+    out['filler_ratio'] = 1 - res['e_risky'] / em
+    out['filler_strict'] = (res['e_free'] + res['e_forced']) / em
+    out['filler_to_decision'] = (em - res['e_risky']) / res['e_risky'] if res['e_risky'] > 1e-9 else float('nan')
+    return out
+
+
+def analyze(grid: str, W: int, sims: int = 1500, seed: int = 1, want_desc=None, extra: bool = False):
     L = Level(grid, W)
     res = dict(W=W, cells=L.n, K=L.K, waves_nominal=L.waves_nominal)
     # state-space guard
@@ -368,6 +595,9 @@ def analyze(grid: str, W: int, sims: int = 1500, seed: int = 1, want_desc=None):
                 hist.append((s, c)); s = t
         res[f'win_undo{K}'] = wins / sims
     res['win_undo0'] = p0
+
+    if extra:
+        res.update(extra_metrics(L, order, nwin, pwin, sd, onwin, res))
 
     # ---- optional descriptors that need the level (entrance depth profile)
     if want_desc is not None:

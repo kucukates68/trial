@@ -68,7 +68,8 @@ def job(a):
             row.update(skipped=True, reason='no W in bin')
             return row
         grid = build_grid(lab, layout)
-        res = analyze(grid, W, sims=1200, seed=hash((src, cm, layout, W)) & 0xffff, want_desc=entrance_descriptors)
+        res = analyze(grid, W, sims=1200, seed=hash((src, cm, layout, W)) & 0xffff, want_desc=entrance_descriptors,
+                      extra=bool(os.environ.get('PUZZLE_EXTRA')))
         row.update(res)
         _bigint_fix(row)
     except Exception as e:                                  # keep sweep alive, record failure

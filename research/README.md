@@ -1,7 +1,7 @@
 # Renk-yerleştirme puzzle'ı: karar motorunu hangi değişkenler üretiyor?
 
 Solver / simülasyon / level-üretimi **araştırma** kodu. Oyun kodu (Unity vb.) değildir ve oyun tasarımını değiştirmez.
-Sonuçların yorumu için `REPORT.md`.
+Sonuçların yorumu için `REPORT.md` (Faz 0: faktöriyel/ablasyon) ve `REPORT_PHASE2.md` (Gemini benchmark ayıklaması + solver metrik yükseltmesi + zarf karşılaştırması).
 
 ## Referans model (değişmedi)
 Grid hedef; `E` giriş, `#` duvar, `.` zemin, harf = renkli hedef hücre. İşçi 4-komşulukla hareket eder, dolan hücre kalıcı engel olur.
@@ -18,6 +18,10 @@ Oyuncu miktar seçmez; W level parametresidir. Ana deneyler 3 renk, A/B deneyi 3
 | `run_experiments.py` | paralel taramalar: `broad, ab4, synth, size, wsweep, region, refine, refine_layout`. |
 | `add_dep_descriptors.py`, `add_order_descriptors.py` | W'den bağımsız yapısal tanımlayıcılar (baskınlık, tüm-renk-sırası sıkılığı) → `results/dep_descriptors.csv`. |
 | `an_*.py` | analizler; çıktıları `results/summary/logs/*.txt`, tablolar `results/summary/*.csv`. |
+| `benchmark_reference.json` | Gemini iddialarının güven sınıfı ve taşınabilirliğe göre ayıklanmış hâli; **hedef değil, referans zarfı**. |
+| `an_phase2_metrics.py`, `an_phase2_compare.py` | Faz 1 metrik analizi, Faz 2 zarf karşılaştırması. Yeni metrikler için `PUZZLE_EXTRA=1 PUZZLE_TAG=_v2 python3 run_experiments.py broad`. |
+| `tests/test_dominators.py` | canlı dar boğaz (baskınlık) hesabının kaba kuvvetle doğrulaması (0 uyuşmazlık). |
+| `results/phase2_per_level.csv.gz` | seviye-başı çıktı (48 sütun: dalga, anlamlı/kritik/zorunlu/riskli, deadlock horizon, path pressure, ABC, filler, regret, greedy, ...). |
 | `export_results.py`, `fix_bigints.py` | jsonl → csv.gz; büyük tamsayıları JSON-güvenli yapar. |
 | `results/*.csv.gz` | **ham aday tabloları** (her satır = silüet × renk haritası × erişim × W). |
 | `results/summary.json` | başlık sayıları (η², çözülebilirlik, en az/çok karar üreten kombinasyonlar). |

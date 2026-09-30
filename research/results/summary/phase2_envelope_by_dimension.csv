@@ -1,0 +1,8 @@
+boyut,sinif,bizim_medyan,p10,p90,çekirdek_pay,toleranslı_pay,medyan_zarfa_göre
+action_space,A,2.427,1.835,2.63,0.0,0.923,altında
+critical_decisions,A,2.233,0.0,7.312,0.159,0.276,altında
+recovery_horizon,A,1.0,1.0,1.195,0.002,0.018,altında
+no_instant_death,A,1.0,0.872,1.0,0.002,0.002,üstünde
+total_moves,B,13.0,9.0,18.0,0.349,1.0,altında
+filler_ratio,B,0.824,0.457,1.0,0.114,0.246,üstünde
+trap_timing,B,0.544,0.379,0.686,0.572,0.755,içinde
