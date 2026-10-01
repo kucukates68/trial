@@ -163,7 +163,7 @@ footer#controls { display:flex; gap:12px; justify-content:center; align-items:st
   var L = new BI.Level(LV.grid, LV.pieces, LV.hand), CELLCOL = [];   // CELLCOL (kedinin görünen rengi) aşağıda piece.color'dan kurulur; level verisindeki eski kedi renk listesi render kaynağı DEĞİLDİR
   // PARÇA RENGİ: level tasarımcısının verdiği piece.color (turuncu/mavi/kırmızı/yeşil). Hedef resimden TÜRETİLMEZ, slota bağlı DEĞİLDİR, mekanik DEĞİLDİR (yalnız görsel kimlik).
   var COLHEX = { orange: '#ff9f1c', blue: '#3b82f6', red: '#ef4444', green: '#2fb67c', dark: '#2e2a35' };
-  if (LV.palette) Object.keys(LV.palette).forEach(function (k) { COLHEX[k] = LV.palette[k]; });   // seviye paleti (ör. L01 doğal kedi tonları); renk yine YALNIZ piece.color'dan gelir
+  if (LV.colorHex) Object.keys(LV.colorHex).forEach(function (k) { COLHEX[k] = LV.colorHex[k]; });   // seviye renk adları → hex (ör. L01 doğal kedi tonları); renk yine YALNIZ piece.color'dan gelir
   var BLOCKS = LV.style === 'blocks';   // 460 küçük fiziksel blok render'ı (mantıksal parça sayısından bağımsız)
   var PCOL = LV.pieces.map(function (p) { if (!COLHEX[p.color]) throw new Error('piece.color eksik: ' + p.id); return COLHEX[p.color]; });
   var OWNER = new Int32Array(L.n); L.pieces.forEach(function (p) { p.cells.forEach(function (ti) { OWNER[ti] = p.i; }); });

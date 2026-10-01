@@ -18,7 +18,7 @@ hand = SRC['hand']
 ids = [p['id'] for p in pieces]
 assert sorted(sum(hand, [])) == sorted(ids), 'kuyruklar parçaları tam bir kez içermeli'
 assert sum(len(p['cells']) for p in pieces) == 460
-assert all(isinstance(p['color'], str) and p['color'] in SRC.get('palette', {}) for p in pieces), 'her parça tek renk (piece.color) ve palette içinde olmalı'
+assert all(isinstance(p['color'], str) and p['color'] in SRC.get('colorHex', {}) for p in pieces), 'her parça tek renk (piece.color) ve palette içinde olmalı'
 
 L = Level(GRID, [dict(id=p['id'], cells=p['cells']) for p in pieces], hand)
 memo, root = L.analyse(); assert root[0], 'çözülemez'
@@ -49,7 +49,7 @@ n_seal = sum(1 for c in cases if any(e.get('sealed') for e in c['expected'])); p
 
 tg = '######\nE.AAAA\n######'; tp = [dict(id='T1', cells=[[1, 2], [1, 3]]), dict(id='T2', cells=[[1, 4], [1, 5]])]
 TL = Level(tg, tp, [['T2'], ['T1'], []]); toy = [dict(name='toy_far_first', sequence=[0, 1], expected=TL.simulate([0, 1]))]
-lv = dict(id='L01', name='L01 — Kedi', title='L01 · kedi 36×24', style=SRC.get('style', 'blocks'), palette=SRC.get('palette', {}), w=W, h=HH + 1, grid=GRID, cells=460, pieces=pieces, hand=hand, pattern=SRC['pattern'], stats=stats)
+lv = dict(id='L01', name='L01 — Kedi', title='L01 · kedi 36×24', style=SRC.get('style', 'blocks'), colorHex=SRC.get('colorHex', {}), w=W, h=HH + 1, grid=GRID, cells=460, pieces=pieces, hand=hand, pattern=SRC['pattern'], stats=stats)
 S = os.path.join(H, '..', 'src'); T = os.path.join(H, '..', 'tests')
 open(os.path.join(S, 'level_l01.js'), 'w', encoding='utf-8').write('window.BI_LEVEL = ' + json.dumps(lv, ensure_ascii=False, separators=(',', ':')) + ';\n')
 vec = [dict(level_id='L01', grid=GRID, pieces=[dict(id=p['id'], cells=p['cells']) for p in pieces], hand=hand, cases=cases), dict(level_id='TOY', grid=tg, pieces=tp, hand=[['T2'], ['T1'], []], cases=toy)]
