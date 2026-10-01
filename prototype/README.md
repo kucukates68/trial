@@ -2,23 +2,23 @@
 
 > Aşağıdaki bölümler (v0, W-dalga/216 hücreli kedi) tarihsel; güncel oyun **dist/colorbuild.html → CAT64** seviyesidir. Eski küçük blok kedi `CAT` seviye seçicide durur.
 
-## Güncel dilim: "Bir resmi inşa ediyorum"
-- **Gizli grid:** 64×64 mantıksal grid, 2000 dolu hücre. Grid = kedi çiziminin maskesi (`src/cat_art.js` vektör çizimi → `tools/render_cat.js` → `tools/cat_cells.json`). Oyuncu grid, hücre, koridor ya da debug yolu **görmez**; yalnız resmi görür.
-- **24 organik parça:** elle yerleştirilmiş 24 tohum noktasından büyütülmüş bölgeler (kulaklar, alın, gözler, yanaklar, burun bölgesi, omuzlar, göğüs, karın, patiler, kuyruk dilimleri). Her parçanın hedefi **sabit** (`piece.fixed`): bölgenin her hücresi boş ve girişten erişilebilir olmalı. Klasik L/J/I parça yok, renk mekanik değil.
-- **3 slotlu el:** üç slotun her birinin elle belirlenmiş sabit kuyruğu var (`hand`); gönderilen kartın yerine yalnız o slotun sıradaki parçası gelir. Kartlar parçanın resimdeki gerçek görüntüsünü gösterir (hücre sayısı/ad yok).
-- **Seçim:** karta bas → bölge resmin üzerinde gerçek renkleriyle nabız atar (yumuşak kontur), A tipi iz: işçilerin **gerçek** rotası boyunca ışık noktaları. B/C: yerleşince yolu kapanacak bölge kehribar nabzı.
-- **Gönder:** işçiler küçük kutuları taşır, bölge resme dönüşür (yumuşak maske ile açılır, tamamlanma parıltısı). Biten bölge kalıcı engel. Yol kapanırsa kayıp, tüm bölgeler dolunca resim tamamlanır + parıltı.
-- **Mekanik ve kurallar:** `engine.js` aynı `PLevel` (BFS erişilebilirlik, kalıcı engel, sealed/win). Tek ekleme: `piece.fixed` ⇒ olası konum yalnız parçanın kendi bölgesi (`chooseTarget` aynı fonksiyon, tek aday).
-- **Seviye doğrulama (`tools/make_image_level.py`):** her kuyruk, "girişten parça-komşuluk BFS'inin tersi" geçerli sıranın alt dizisi ⇒ seviye kesin çözülebilir; 3 slotlu el modeli için 246 durumluk kesin DP (Python): çözülebilir, 1.865.325 kazanan sıra, 74 karar durumu, 54 anında + 28 gecikmeli tuzak (rasgele el oyunuyla kazanma ≈ %0.4). Bu **zorluk kanıtı değil**, "tüm sıralar kazanmaz" filtresidir.
-- **Parity:** `piece_ref.py` ↔ `engine.js`, 53/53 vaka (eski kedi 27 + CAT64 26; sayfadaki "Parity testi").
-- **Yol görünümü:** sol üst Kapalı/A/B/C (varsayılan CAT64'te A). `?path=A|B|C|0`.
+## Güncel dilim: "Pixel pixel bir resim inşa ediyorum" (CAT96)
+- **Görsel dil:** gerçek **pixel-art** kedi, 96×96, 14 renkli sınırlı palet (`src/cat_art.js`: elle yazılmış piksel çizimi; yalnız tam piksellere boyayan elips/çokgen/çizgi, 1 px koyu dış çizgi, 3 tonlu dama-dithering gölge). Vektör/yumuşatma yok. Tahta tam sayı cihaz-pikseli ölçekle (en-yakın-komşu) çizilir: grid çizgisi, hücre kenarı, koridor, debug yolu yok; pikseller kesintisiz tek yüzey.
+- **Gizli grid:** 96×96, 4227 dolu piksel = resmin maskesi (`node tools/render_cat.js` → `tools/cat_cells.json`).
+- **24 piksel yaması:** elle yerleştirilmiş 24 tohumdan, düzensiz sınırlı Dijkstra ile büyütülmüş organik yamalar (≈45–330 piksel). Her yamanın hedefi sabittir (`piece.fixed`). Klasik L/J/I yok; kartlar yamanın pixel-art önizlemesini gösterir.
+- **Başlangıç:** kedi çok soluk hayalet pixel-art silüeti. Karta basınca yama gerçek renkleriyle nabız atar (piksel basamaklı çerçeve).
+- **İnşa animasyonu:** her teslimat, yamanın ≤6 komşu pikselinden oluşan küçük bir **küme**; işçi minik bir piksel malzeme taşır, varınca küme pikselleri tek tek belirir (kıvılcım), yama dolarken pixel pixel oluşur. İşçi rotası gerçek BFS rotasıdır; teslimat sırası "en derinden başla".
+- **3 slotlu el, motor, `chooseTarget`, BFS, kalıcı engel, sealed/stuck, solver/parity:** değişmedi (yalnız görsel temsil). Kuyruklar: kesin DP (Python) — çözülebilir, 736 milyon kazanan sıra, 120 karar durumu, rasgele el oyunuyla kazanma ≈ %12.
+- **Parity:** `piece_ref.py` ↔ `engine.js`, 40/40 vaka (eski kedi 27 + CAT96 13).
+- **Yol görünümü:** Kapalı/A/B/C (CAT96'da varsayılan A). `?path=A|B|C|0`.
 
 ## Bilinen sınırlar / açık kararlar
-- Resim tek bir kedi; çizim ve bölgeler elle, otomatik "resim → seviye" hattı yok (sonraki adım).
-- Bölge sınırları Dijkstra büyütmesinin sonucu; kimi bölgeler anatomik olarak keskin okunmayabilir. Tohum konumları `make_image_level.py::SEEDS`.
-- İlk elde yolu kapatan kart yok (tuzaklar oyun ilerledikçe çıkıyor; ör. 9. adımda).
-- Bir parça ×1 hızda ≈ 3.7 sn.
-- 64×64 küçük ekranlarda hücre ≈ 6 px; okunabilir ama işçiler çok küçük.
+- Tek bir elle çizilmiş pixel-art; otomatik "resim → seviye" hattı yok.
+- Yama sınırları tohum + gürültü sonucu; bazı yamalar anatomik olarak okunmaz.
+- Bu kuyruk düzeniyle ilk elde yolu kapatan kart yok; tuzaklar ilerleyen adımlarda (ör. 17.) çıkıyor.
+- İşçiler küçük (hücre ≈ 5–6 px); mobilde daha küçük.
+- Bir parça ×1 hızda ≈ 4.7 sn.
+- Tahta tam sayı piksel ölçeklidir: ekran yüksekliğine göre 4–6 px/piksel.
 
 ---
 

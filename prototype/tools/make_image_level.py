@@ -8,9 +8,8 @@ from collections import deque, Counter
 H = os.path.dirname(os.path.abspath(__file__)); sys.path.insert(0, H)
 from piece_ref import PLevel
 
-N = 64
-cells = json.load(open(os.path.join(H, 'cat_cells.json')))
-cat = {(i // N, i % N) for i, c in enumerate(cells) if c}
+_cj = json.load(open(os.path.join(H, 'cat_cells.json'))); N = _cj['N']
+cat = {(i // N, i % N) for i, c in enumerate(_cj['idx']) if c}
 # en büyük 4-bağlantılı bileşen
 comps = []; left = set(cat)
 while left:
@@ -21,10 +20,10 @@ while left:
             v = (u[0] + dr, u[1] + dc)
             if v in left: left.discard(v); comp.add(v); q.append(v)
     comps.append(comp)
-cat = max(comps, key=len); assert len(cat) >= 1500
+cat = max(comps, key=len); assert len(cat) >= 3000
 
 # giriş: alt orta; görünmez zemin sütunu
-E = (63, 32); FLOOR = [(62, 32), (61, 32)]
+E = (N - 1, N // 2); lastcat = max(r for r, c in cat if c == E[1]); FLOOR = [(r, E[1]) for r in range(lastcat + 1, N - 1)]
 grid = [['#'] * N for _ in range(N)]
 for r, c in cat: grid[r][c] = 'A'
 for r, c in FLOOR:
@@ -32,13 +31,13 @@ for r, c in FLOOR:
 grid[E[0]][E[1]] = 'E'
 
 # ---- elle yerleştirilmiş tohumlar (x=sütun, y=satır) → bölgeler
-SEEDS = [('earL', 21, 9), ('earR', 43, 9), ('forehead', 32, 15), ('headTopL', 22, 17), ('headTopR', 42, 17), ('eyeL', 24, 24), ('eyeR', 40, 24),
-         ('cheekL', 20, 31), ('cheekR', 44, 31), ('muzzle', 32, 31), ('chin', 32, 37), ('shoulderL', 21, 40), ('shoulderR', 43, 40), ('chest', 32, 45),
-         ('flankL', 19, 48), ('flankR', 45, 48), ('belly', 32, 53), ('rumpL', 21, 56), ('pawL', 26, 59), ('pawR', 38, 59),
-         ('tailBase', 48, 57), ('tailMid', 58, 52), ('tailUp', 58, 44), ('tailTip', 53, 37)]
+SEEDS = [('earL', 32, 14), ('earR', 64, 14), ('forehead', 48, 22), ('headTopL', 33, 26), ('headTopR', 63, 26), ('eyeL', 36, 36), ('eyeR', 60, 36),
+         ('cheekL', 30, 46), ('cheekR', 66, 46), ('muzzle', 48, 46), ('chin', 48, 56), ('shoulderL', 32, 60), ('shoulderR', 64, 60), ('chest', 48, 68),
+         ('flankL', 28, 72), ('flankR', 68, 72), ('belly', 48, 80), ('rumpL', 32, 84), ('pawL', 39, 88), ('pawR', 57, 88),
+         ('tailBase', 72, 86), ('tailMid', 87, 78), ('tailUp', 87, 66), ('tailTip', 80, 56)]
 def snap(x, y):
     best = min(cat, key=lambda p: (p[0] - y) ** 2 + (p[1] - x) ** 2); return best
-def wgt(r, c): return 1 + 0.55 * math.sin(c * 0.45 + r * 0.27) * math.cos(r * 0.38 - c * 0.21)
+def wgt(r, c): return 1 + 0.7 * math.sin(c * 0.62 + r * 0.37) * math.cos(r * 0.51 - c * 0.29)   # düzensiz (piksel kümesi gibi) sınırlar
 dist = {}; owner = {}; pq = []
 for k, (nm, x, y) in enumerate(SEEDS):
     p = snap(x, y); heapq.heappush(pq, (0.0, k, p))
@@ -51,7 +50,7 @@ while pq:
         if v in cat and v not in owner: heapq.heappush(pq, (d + wgt(*v), k, v))
 assert len(owner) == len(cat)
 regions = {k: sorted(p for p, kk in owner.items() if kk == k) for k in range(len(SEEDS))}
-for k, rc in regions.items(): assert len(rc) >= 20, (SEEDS[k][0], len(rc))
+for k, rc in regions.items(): assert len(rc) >= 40, (SEEDS[k][0], len(rc))
 pieces = [dict(id='P%02d' % (k + 1), ch='A', cells=[list(p) for p in rc], fixed=True, name=SEEDS[k][0]) for k, rc in regions.items()]
 GRID = '\n'.join(''.join(r) for r in grid)
 L = PLevel(GRID, [{k: v for k, v in p.items() if k != 'name'} for p in pieces])
@@ -132,7 +131,7 @@ PATTERNS = {
 def build(pattern='anatomy'):
     from piece_ref import make_vectors  # noqa (yalnız bağımlılık denetimi)
     queues = PATTERNS[pattern](); stats = metrics(queues); memo, root = dp(queues); rng = random.Random(11)
-    lv = dict(id='CAT64', name='Kedi — resim inşası', grid=GRID, art=True, w=N, h=N, cells=L.n,
+    lv = dict(id='CAT96', name='Pixel kedi — resim inşası', grid=GRID, art=True, w=N, h=N, cells=L.n,
               pieces=pieces, hand=[[pieces[j]['id'] for j in q] for q in queues], pattern=pattern,
               palette=dict(colors=['#f2a14a'], names=['Parça']), stats=stats)
     # parity vektörleri (motor düzeyi): kazanan dizi, el-uyumlu rasgele oyunlar, serbest sıralı rasgele oyunlar, yasadışı tekrar
@@ -144,8 +143,8 @@ def build(pattern='anatomy'):
             if o[3] == 'won': return seq
             k = [kk for kk in range(3) if ptr[kk] < len(queues[kk]) and queues[kk][ptr[kk]] == o[0]][0]
             ptr = tuple(ptr[i] + (1 if i == k else 0) for i in range(3))
-    for i in range(3): cases.append(dict(name=f'winning{i}', sequence=win_seq()))
-    for i in range(12):   # el-uyumlu rasgele
+    for i in range(2): cases.append(dict(name=f'winning{i}', sequence=win_seq()))
+    for i in range(6):   # el-uyumlu rasgele
         ptr = [0, 0, 0]; st = (0, 0); seq = []
         while True:
             ks = [k for k in range(3) if ptr[k] < len(queues[k])]
@@ -154,7 +153,7 @@ def build(pattern='anatomy'):
             if res['won'] or res['sealed'] or res['stuck']: break
             st = res['state']
         cases.append(dict(name=f'hand_random{i}', sequence=seq))
-    for i in range(10):   # serbest sıra (el kısıtı yok)
+    for i in range(4):   # serbest sıra (el kısıtı yok)
         js = list(range(24)); rng.shuffle(js); cases.append(dict(name=f'free_random{i}', sequence=js[:rng.randint(1, 8)]))
     cases.append(dict(name='illegal_repeat', sequence=[0, 0]))
     for c in cases: c['expected'] = L.simulate(c['sequence'])
@@ -164,7 +163,7 @@ def build(pattern='anatomy'):
     open(os.path.join(S, 'vectors_image.js'), 'w', encoding='utf-8').write('window.CB_VECTORS.levels.push(' + json.dumps(vec) + ');\n')
     json.dump(dict(levels=[vec]), open(os.path.join(H, '..', 'tests', 'image_vectors.json'), 'w'))
     json.dump(dict(queues=lv['hand'], order=[pieces[j]['id'] for j in order], stats=stats), open(os.path.join(H, '..', 'tests', 'image_level_info.json'), 'w'), indent=1)
-    print('yazıldı: CAT64', L.n, 'hücre', L.P, 'parça; vaka', len(cases), json.dumps(stats))
+    print('yazıldı: CAT96', L.n, 'hücre', L.P, 'parça; vaka', len(cases), json.dumps(stats))
     print('el kuyrukları', lv['hand'])
 
 

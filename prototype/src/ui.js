@@ -23,61 +23,72 @@
   var LOG = { meta: { app: 'renk-yerlestirme-prototip-v1-parca', started: new Date().toISOString(), ua: navigator.userAgent, player: cfg.player, test: cfg.test }, attempts: [] };
   function now() { return performance.now() / 1000; }
 
-  // ---------------------------------------------------------------- RESİM MODU (lv.art): gizli grid üzerinde vektör kedi resmi
-  // Mantık yine yalnız engine.js'te (grid = resmin maskesi, parça = resmin sabit bölgesi). Burada yalnız görsel: grid/hücre/koridor ÇİZİLMEZ.
-  // Bölge sınırları hücre basamakları olarak değil, ikili maskenin yumuşatılmış (bilinear→eşik) konturu olarak çizilir.
-  var IMG = { ready: false, S: 10, N: 64, art: null, ghost: null, built: null, bctx: null, sil: null, mask: null, colors: null, shown: null, dirty: false, lastRebuild: 0, sprites: {}, sparks: [] };
+  // ---------------------------------------------------------------- RESİM MODU (lv.art): gizli piksel grid üzerinde PIXEL-ART resim
+  // Mantık yalnız engine.js'te (grid = piksel-art'ın dolu piksel maskesi, parça = sabit piksel yaması). Burada yalnız görsel:
+  // grid çizgisi/hücre kenarı/koridor ÇİZİLMEZ; resim, tam sayı ölçekli en-yakın-komşu pikseller olarak kesintisiz yüzey oluşturur.
+  var IMG = { ready: false, N: 96, art: null, ghost: null, built: null, bctx: null, sil: null, colors: null, sprites: {}, paths: {}, sparks: [], tmp: null };
   function mkCanvas(w, h) { var c = document.createElement('canvas'); c.width = w; c.height = h; return c; }
   function imgInit(lv) {
-    var S = IMG.S, N = lv.w, W = N * S, art = mkCanvas(W, W), g = art.getContext('2d', { willReadFrequently: true });
-    window.CB_ART.draw(g, S); IMG.N = N;
-    var data = g.getImageData(0, 0, W, W).data, gh = mkCanvas(W, W), gg = gh.getContext('2d'), id = gg.createImageData(W, W), d = id.data, sl = mkCanvas(W, W), sg = sl.getContext('2d'), sd = sg.createImageData(W, W);
-    for (var i = 0; i < data.length; i += 4) {
-      var a = data[i + 3]; if (!a) continue;
-      var lum = (data[i] * 0.3 + data[i + 1] * 0.59 + data[i + 2] * 0.11) / 255, v = 158 + 66 * lum;   // silik, soluk "boyama kitabı" tonu
-      d[i] = v - 8; d[i + 1] = v - 3; d[i + 2] = v + 8; d[i + 3] = a * 0.92; sd.data[i] = sd.data[i + 1] = sd.data[i + 2] = 255; sd.data[i + 3] = a;
+    var A = window.CB_ART.pixels(), N = A.N, art = mkCanvas(N, N), gh = mkCanvas(N, N), sl = mkCanvas(N, N), ai = art.getContext('2d').createImageData(N, N), gi = gh.getContext('2d').createImageData(N, N), si = sl.getContext('2d').createImageData(N, N);
+    for (var i = 0; i < N * N; i++) {
+      var v = A.idx[i]; if (!v) continue; var c = rgb(A.pal[v]), k = i * 4, lum = (c[0] * 0.3 + c[1] * 0.59 + c[2] * 0.11) / 255, g = 160 + 66 * lum;   // hayalet: silik pixel-art tonu
+      ai.data[k] = c[0]; ai.data[k + 1] = c[1]; ai.data[k + 2] = c[2]; ai.data[k + 3] = 255;
+      gi.data[k] = g - 8; gi.data[k + 1] = g - 3; gi.data[k + 2] = g + 8; gi.data[k + 3] = 235; si.data[k] = si.data[k + 1] = si.data[k + 2] = si.data[k + 3] = 255;
     }
-    gg.putImageData(id, 0, 0); sg.putImageData(sd, 0, 0);
-    IMG.art = art; IMG.ghost = gh; IMG.sil = sl; IMG.built = mkCanvas(W, W); IMG.bctx = IMG.built.getContext('2d'); IMG.mask = mkCanvas(W, W); IMG.sprites = {}; IMG.sparks = []; IMG.tmp = null;
-    IMG.smc = mkCanvas(N, N); IMG.shown = new Uint8Array(G.level.n); IMG.dirty = false;
-    IMG.colors = G.level.targets.map(function (tg) { var k = ((tg.r * S + (S >> 1)) * W + tg.c * S + (S >> 1)) * 4; return 'rgb(' + data[k] + ',' + data[k + 1] + ',' + data[k + 2] + ')'; });
+    art.getContext('2d').putImageData(ai, 0, 0); gh.getContext('2d').putImageData(gi, 0, 0); sl.getContext('2d').putImageData(si, 0, 0);
+    IMG.N = N; IMG.art = art; IMG.ghost = gh; IMG.sil = sl; IMG.built = mkCanvas(N, N); IMG.bctx = IMG.built.getContext('2d'); IMG.sprites = {}; IMG.paths = {}; IMG.sparks = []; IMG.tmp = null;
+    IMG.colors = G.level.targets.map(function (tg) { return A.pal[A.idx[tg.r * N + tg.c]]; });
     IMG.ready = true;
   }
-  // hücre kümesi → W×W ikili alfa maskesi; 1px/hücre maskenin bilinear büyütülüp eşiklenmesiyle köşeler yumuşar
-  function smoothMask(tis, into) {
-    var L = G.level, N = IMG.N, W = N * IMG.S, g = IMG.smc.getContext('2d'); g.clearRect(0, 0, N, N); g.fillStyle = '#fff';
-    tis.forEach(function (ti) { var tg = L.targets[ti]; g.fillRect(tg.c, tg.r, 1, 1); });
-    var m = into || mkCanvas(W, W), mg = m.getContext('2d', { willReadFrequently: true }); mg.globalCompositeOperation = 'source-over'; mg.clearRect(0, 0, W, W); mg.imageSmoothingEnabled = true; mg.imageSmoothingQuality = 'high'; mg.drawImage(IMG.smc, 0, 0, N, N, 0, 0, W, W);
-    var id = mg.getImageData(0, 0, W, W), d = id.data; for (var i = 3; i < d.length; i += 4) d[i] = d[i] >= 128 ? 255 : 0; mg.putImageData(id, 0, 0); return m;
-  }
-  function tint(mask, color) { var c = mkCanvas(mask.width, mask.height), g = c.getContext('2d'); g.drawImage(mask, 0, 0); g.globalCompositeOperation = 'source-in'; g.fillStyle = color; g.fillRect(0, 0, c.width, c.height); return c; }
-  function imgReveal(ti) { IMG.shown[ti] = 1; IMG.dirty = true; }
-  function imgRebuild() {
-    var tis = []; for (var ti = 0; ti < IMG.shown.length; ti++) if (IMG.shown[ti]) tis.push(ti);
-    var g = IMG.bctx, W = IMG.built.width; g.globalCompositeOperation = 'source-over'; g.clearRect(0, 0, W, W);
-    if (tis.length) { smoothMask(tis, IMG.mask); g.drawImage(IMG.art, 0, 0); g.globalCompositeOperation = 'destination-in'; g.drawImage(IMG.mask, 0, 0); g.globalCompositeOperation = 'source-over'; }
-    IMG.dirty = false; IMG.lastRebuild = now();
-  }
-  function imgSync(filled) { for (var ti = 0; ti < G.level.n; ti++) IMG.shown[ti] = filled[ti] ? 1 : 0; IMG.sparks = []; G.flash = null; imgRebuild(); }
+  function imgReveal(ti) { var tg = G.level.targets[ti]; IMG.bctx.fillStyle = IMG.colors[ti]; IMG.bctx.fillRect(tg.c, tg.r, 1, 1); }
+  function imgSync(filled) { IMG.bctx.clearRect(0, 0, IMG.N, IMG.N); for (var ti = 0; ti < G.level.n; ti++) if (filled[ti]) imgReveal(ti); IMG.sparks = []; G.flash = null; G.revealQ = []; }
   function absCells(pi) { var p = G.level.pieces[pi]; return p.cells.map(function (x) { return [x[0] + p.ar, x[1] + p.ac]; }); }
   function pieceTis(pi) { var L = G.level; return absCells(pi).map(function (x) { return L.tIdx[x[0] * L.w + x[1]]; }); }
-  function sprite(pi) {   // parçanın resimdeki bölgesi: yumuşak konturlu, resmin gerçek renkleriyle
+  function sprite(pi) {   // parçanın piksel yaması (resmin gerçek renkleriyle, hücre başına 1 px)
     if (IMG.sprites[pi]) return IMG.sprites[pi];
-    var S = IMG.S, N = IMG.N, W = N * S, cs = absCells(pi), r0 = 1e9, c0 = 1e9, r1 = -1, c1 = -1;
-    cs.forEach(function (x) { r0 = Math.min(r0, x[0]); c0 = Math.min(c0, x[1]); r1 = Math.max(r1, x[0]); c1 = Math.max(c1, x[1]); });
-    r0 = Math.max(0, r0 - 1); c0 = Math.max(0, c0 - 1); r1 = Math.min(N - 1, r1 + 1); c1 = Math.min(N - 1, c1 + 1);
-    var full = mkCanvas(W, W), fg = full.getContext('2d'), m = smoothMask(pieceTis(pi)); fg.drawImage(IMG.art, 0, 0); fg.globalCompositeOperation = 'destination-in'; fg.drawImage(m, 0, 0);
-    var cv = mkCanvas((c1 - c0 + 1) * S, (r1 - r0 + 1) * S); cv.getContext('2d').drawImage(full, c0 * S, r0 * S, cv.width, cv.height, 0, 0, cv.width, cv.height);
+    var tis = pieceTis(pi), L = G.level, r0 = 1e9, c0 = 1e9, r1 = -1, c1 = -1;
+    tis.forEach(function (ti) { var tg = L.targets[ti]; r0 = Math.min(r0, tg.r); c0 = Math.min(c0, tg.c); r1 = Math.max(r1, tg.r); c1 = Math.max(c1, tg.c); });
+    var cv = mkCanvas(c1 - c0 + 1, r1 - r0 + 1), g = cv.getContext('2d');
+    tis.forEach(function (ti) { var tg = L.targets[ti]; g.fillStyle = IMG.colors[ti]; g.fillRect(tg.c - c0, tg.r - r0, 1, 1); });
     return (IMG.sprites[pi] = { cv: cv, r0: r0, c0: c0, w: c1 - c0 + 1, h: r1 - r0 + 1 });
   }
-  function drawSpriteTo(cv, pi, box) {
-    var sp = sprite(pi), sc = Math.min(box / (sp.w * IMG.S), box / (sp.h * IMG.S)), w = Math.max(1, Math.round(sp.w * IMG.S * sc)), h = Math.max(1, Math.round(sp.h * IMG.S * sc)), dpr = window.devicePixelRatio || 1;
-    cv.style.width = w + 'px'; cv.style.height = h + 'px'; cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr);
-    var g = cv.getContext('2d'); g.imageSmoothingQuality = 'high'; g.clearRect(0, 0, cv.width, cv.height); g.drawImage(sp.cv, 0, 0, cv.width, cv.height);
+  function drawSpriteTo(cv, pi, box) {   // tam sayı ölçek, yumuşatma yok
+    var sp = sprite(pi), sc = Math.max(1, Math.floor(box / Math.max(sp.w, sp.h))), dpr = window.devicePixelRatio || 1;
+    cv.style.width = sp.w * sc + 'px'; cv.style.height = sp.h * sc + 'px'; cv.width = Math.round(sp.w * sc * dpr); cv.height = Math.round(sp.h * sc * dpr);
+    var g = cv.getContext('2d'); g.imageSmoothingEnabled = false; g.clearRect(0, 0, cv.width, cv.height); g.drawImage(sp.cv, 0, 0, cv.width, cv.height);
   }
-  // bir canvas'ın siluetinden yumuşak parıltı/çerçeve (gölge numarası: görüntü ekran dışına, gölgesi yerine düşer)
-  function glow(img, x, y, w, h, color, blur) {
-    ctx.save(); ctx.shadowColor = color; ctx.shadowBlur = blur; ctx.shadowOffsetX = 20000 * G.dpr; ctx.shadowOffsetY = 0; ctx.drawImage(img, x - 20000, y, w, h); ctx.restore();
+  function pixCanvas(tis, color) { var L = G.level, c = mkCanvas(IMG.N, IMG.N), g = c.getContext('2d'); g.fillStyle = color; tis.forEach(function (ti) { var tg = L.targets[ti]; g.fillRect(tg.c, tg.r, 1, 1); }); return c; }
+  // hücre kümesi → hücre birimlerinde dış kenar yolu (piksel basamaklı; piksel-art için doğru dil)
+  function edgePath(tis) {
+    var L = G.level, set = {}, p = new Path2D(); tis.forEach(function (t) { set[t] = 1; });
+    tis.forEach(function (ti) {
+      var tg = L.targets[ti], x = tg.c, y = tg.r;
+      [[-1, 0, x, y, x + 1, y], [1, 0, x, y + 1, x + 1, y + 1], [0, -1, x, y, x, y + 1], [0, 1, x + 1, y, x + 1, y + 1]].forEach(function (d) {
+        var rr = tg.r + d[0], cc = tg.c + d[1], nt = (rr >= 0 && rr < L.h && cc >= 0 && cc < L.w) ? L.tIdx[rr * L.w + cc] : -1;
+        if (nt < 0 || !set[nt]) { p.moveTo(d[2], d[3]); p.lineTo(d[4], d[5]); }
+      });
+    });
+    return p;
+  }
+  function pieceEdge(pi) { if (!IMG.paths[pi]) IMG.paths[pi] = edgePath(pieceTis(pi)); return IMG.paths[pi]; }
+  // yerleştirmenin görsel birimleri: teslimat başına küçük bir PİKSEL KÜMESİ (≤6 komşu hücre); rota = kümenin en sığ hücresine gerçek rota
+  function artClusters(res, routes) {
+    var L = G.level, D = res.bfs.dist, idx = {}, assigned = {}, out = [], CAP = 6;
+    res.placed.forEach(function (ti, i) { idx[ti] = i; });
+    res.placed.forEach(function (t0) {
+      if (assigned[t0]) return; var cl = [t0], q = [t0]; assigned[t0] = 1;
+      while (q.length && cl.length < CAP) {
+        var u = q.shift(), tg = L.targets[u];
+        [[1, 0], [-1, 0], [0, 1], [0, -1]].forEach(function (d) {
+          if (cl.length >= CAP) return; var rr = tg.r + d[0], cc = tg.c + d[1]; if (rr < 0 || cc < 0 || rr >= L.h || cc >= L.w) return;
+          var nt = L.tIdx[rr * L.w + cc]; if (nt < 0 || assigned[nt] || idx[nt] === undefined) return; assigned[nt] = 1; cl.push(nt); q.push(nt);
+        });
+      }
+      out.push(cl);
+    });
+    var units = out.map(function (cl) { var rep = cl.reduce(function (b, t) { return D[L.targets[t].cell] < D[L.targets[b].cell] ? t : b; }, cl[0]); return { ti: rep, cells: cl, path: routes[idx[rep]], d: D[L.targets[rep].cell] }; });
+    units.sort(function (a, b) { return (b.d - a.d) || (a.ti - b.ti); });   // en derinden başla: hiçbir işçi, görünür biçimde dolmuş bir kümenin içinden geçmez
+    return units;
   }
 
   // ---------------------------------------------------------------- renk yardımcıları
@@ -96,6 +107,7 @@
     newAttempt('load'); layout(); fillSelectors();
   }
   function newAttempt(reason) {
+    G.revealQ = [];
     if (G.cur && !G.cur.outcome) { G.cur.outcome = reason === 'load' ? 'switch' : 'restart'; G.cur.t1 = Date.now(); }
     G.st = G.level.newState(); G.visual = new Uint8Array(G.st.filled); G.status = 'idle'; G.history = []; G.selected = -1; G.opt = null; G.read = null; G.read = null;
     G.previewSealed = []; G.previewStuck = false; G.workers = []; G.dest = null; G.pops = {}; G.pending = null; G.sealedShown = []; G.sealedCv = null; G.undoLeft = cfg.undo; G.wonAt = 0; G.handSig = ''; if (G.lv.art) imgSync(G.st.filled);
@@ -111,9 +123,9 @@
     var wrap = $('boardWrap'); G.cw = wrap.clientWidth; G.ch = wrap.clientHeight; G.dpr = window.devicePixelRatio || 1;
     canvas.width = Math.round(G.cw * G.dpr); canvas.height = Math.round(G.ch * G.dpr);
     if (!G.level) return;
-    if (G.lv && G.lv.art) {   // resim modu: kesirli hücre boyu, kare tahta
-      var ac = G.level.w + 4, ar = G.level.h + 5; G.s = Math.max(3, Math.min(G.cw / ac, G.ch / ar));
-      G.ox = (G.cw - G.level.w * G.s) / 2; G.oy = Math.max(G.s * 1.6, (G.ch - (G.level.h + 2.4) * G.s) / 2); return;
+    if (G.lv && G.lv.art) {   // resim modu: tam sayı cihaz pikseli ölçeği (keskin piksel-art), kare tahta
+      var d = G.dpr, ps = Math.max(2, Math.floor(Math.min(G.cw * d / (G.level.w + 8), G.ch * d / (G.level.h + 8)))); G.s = ps / d;
+      G.ox = Math.round((G.cw * d - G.level.w * ps) / 2) / d; G.oy = Math.round(Math.max(ps * 4, (G.ch * d - (G.level.h + 4) * ps) / 2)) / d; return;
     }
     var cols = G.level.w + 3, rows = G.level.h + 3;
     G.s = Math.max(5, Math.floor(Math.min(G.cw / cols, G.ch / rows)));
@@ -242,9 +254,9 @@
   }
   // ---- RESİM MODU çizimi
   function drawHole(s) {
-    var L = G.level, e = L.entrances[0], ex = G.ox + (e % L.w + 0.5) * s, ey = G.oy + L.h * s + s * 0.35;
-    ctx.fillStyle = '#6b4a35'; ctx.beginPath(); ctx.ellipse(ex, ey, s * 3.9, s * 1.7, 0, 0, 7); ctx.fill();
-    ctx.fillStyle = '#2d1b12'; ctx.beginPath(); ctx.ellipse(ex, ey + s * 0.1, s * 3.1, s * 1.2, 0, 0, 7); ctx.fill();
+    var L = G.level, e = L.entrances[0], ex = G.ox + (e % L.w + 0.5) * s, ey = G.oy + L.h * s + s * 0.5;
+    ctx.fillStyle = '#6b4a35'; ctx.beginPath(); ctx.ellipse(ex, ey, s * 6, s * 2.6, 0, 0, 7); ctx.fill();
+    ctx.fillStyle = '#2d1b12'; ctx.beginPath(); ctx.ellipse(ex, ey + s * 0.2, s * 4.8, s * 1.9, 0, 0, 7); ctx.fill();
   }
   function artRoutesSubset(routes) {   // iz için en çok 9 temsilci rota (en uzun + eşit aralıklı)
     var idx = routes.map(function (r, i) { return i; }).sort(function (a, b) { return routes[b].length - routes[a].length; }), out = [], k = Math.max(1, Math.floor(idx.length / 9));
@@ -253,72 +265,74 @@
   }
   function drawArtTrail(t) {
     var s = G.s, rd = G.read; if (!rd.sub) rd.sub = artRoutesSubset(rd.routes);
-    var routes = rd.sub, speed = 30, maxLen = 0, seen = {};
+    var routes = rd.sub, speed = 44, maxLen = 0, seen = {};
     routes.forEach(function (r) { maxLen = Math.max(maxLen, r.length - 1); });
-    var cycle = maxLen / speed + 0.8, tt = t % cycle, rad = Math.max(2.2, s * 0.3);
+    var cycle = maxLen / speed + 0.8, tt = t % cycle, rad = Math.max(2.2, s * 0.55);
     ctx.save();
     routes.forEach(function (r) {   // ayak izleri: rota boyunca silik noktalar
-      ctx.fillStyle = 'rgba(70,40,90,.28)';
-      for (var i = 2; i < r.length - 1; i += 3) { if (seen[r[i]]) continue; seen[r[i]] = 1; ctx.beginPath(); ctx.arc(cx(r[i]), cy(r[i]), Math.max(1, s * 0.13), 0, 7); ctx.fill(); }
+      ctx.fillStyle = 'rgba(70,40,90,.30)';
+      for (var i = 3; i < r.length - 1; i += 4) { if (seen[r[i]]) continue; seen[r[i]] = 1; ctx.fillRect(cx(r[i]) - s * 0.3, cy(r[i]) - s * 0.3, Math.max(1.5, s * 0.6), Math.max(1.5, s * 0.6)); }
     });
     routes.forEach(function (r) {   // akan ışık paketleri (gerçek worker rotası)
       var steps = r.length - 1; if (steps <= 0) return; var f = tt * speed; if (f > steps + 0.5) return;
       var fade = f > steps ? Math.max(0, 1 - (f - steps) / 0.5) : 1;
       for (var k = 0; k < 8; k++) {
-        var ff = f - k * 0.9; if (ff < 0 || ff > steps) continue;
+        var ff = f - k * 1.4; if (ff < 0 || ff > steps) continue;
         var i = Math.min(steps - 1, Math.floor(ff)), u = ff - i, px = cx(r[i]) + (cx(r[i + 1]) - cx(r[i])) * u, py = cy(r[i]) + (cy(r[i + 1]) - cy(r[i])) * u;
-        ctx.globalAlpha = (0.9 - k * 0.1) * fade; ctx.shadowColor = '#ffd36a'; ctx.shadowBlur = k === 0 ? s * 1.2 : 0;
-        ctx.fillStyle = k === 0 ? '#fff' : 'rgba(255,215,120,.95)'; ctx.beginPath(); ctx.arc(px, py, rad * (1 - k * 0.07), 0, 7); ctx.fill();
+        ctx.globalAlpha = (0.95 - k * 0.11) * fade; ctx.shadowColor = '#ffd36a'; ctx.shadowBlur = k === 0 ? s * 2 : 0;
+        ctx.fillStyle = k === 0 ? '#fff' : 'rgba(255,215,120,.95)'; ctx.beginPath(); ctx.arc(px, py, rad * (1 - k * 0.08), 0, 7); ctx.fill();
         if (k === 0) { ctx.shadowBlur = 0; ctx.strokeStyle = 'rgba(90,50,20,.8)'; ctx.lineWidth = 1; ctx.stroke(); }
       }
     });
     ctx.restore();
   }
-  function drawArtCritical(t) {   // B: yerleşince girişten erişilemeyecek bölge yumuşak kehribar nabzı; yolu uzayacak bölge daha soluk
+  function drawArtCritical(t) {   // B: yerleşince girişten erişilemeyecek piksel bölgesi kehribar nabzı; yolu uzayacak bölge daha soluk
     var rd = G.read, s = G.s, W = G.level.w * s, pulse = 0.5 + 0.5 * Math.sin(t * 3.2);
-    if (!rd.cutCv) { rd.detCv = rd.detour.length ? tint(smoothMask(rd.detour), 'rgb(' + AMBER + ')') : null; rd.cutCv = rd.cut.length ? tint(smoothMask(rd.cut), 'rgb(' + AMBER + ')') : null; }
-    if (rd.detCv) { ctx.save(); ctx.globalAlpha = 0.14 + 0.1 * pulse; ctx.drawImage(rd.detCv, G.ox, G.oy, W, W); ctx.restore(); }
+    if (!rd.cutCv) { rd.detCv = rd.detour.length ? pixCanvas(rd.detour, 'rgb(' + AMBER + ')') : null; rd.cutCv = rd.cut.length ? pixCanvas(rd.cut, 'rgb(' + AMBER + ')') : null; rd.cutEdge = rd.cut.length ? edgePath(rd.cut) : null; }
+    if (rd.detCv) { ctx.save(); ctx.globalAlpha = 0.16 + 0.1 * pulse; ctx.drawImage(rd.detCv, G.ox, G.oy, W, W); ctx.restore(); }
     if (rd.cutCv) {
-      ctx.save(); ctx.globalAlpha = 0.34 + 0.26 * pulse; ctx.drawImage(rd.cutCv, G.ox, G.oy, W, W); ctx.restore();
-      glow(rd.cutCv, G.ox, G.oy, W, W, 'rgba(255,140,20,' + (0.7 + 0.3 * pulse).toFixed(2) + ')', s * (1.1 + 1.1 * pulse));
+      ctx.save(); ctx.globalAlpha = 0.38 + 0.28 * pulse; ctx.drawImage(rd.cutCv, G.ox, G.oy, W, W); ctx.restore();
+      ctx.save(); ctx.translate(G.ox, G.oy); ctx.scale(s, s); ctx.shadowColor = 'rgba(' + AMBER + ',.95)'; ctx.shadowBlur = s * (1.5 + 1.5 * pulse); ctx.strokeStyle = 'rgba(255,140,20,' + (0.6 + 0.3 * pulse).toFixed(2) + ')'; ctx.lineWidth = 0.6; ctx.lineJoin = 'round'; ctx.stroke(rd.cutEdge); ctx.restore();
     }
   }
   function drawArt(t) {
     var L = G.level, s = G.s, N = L.w, ox = G.ox, oy = G.oy, W = N * s;
-    if (IMG.dirty && (t - IMG.lastRebuild > 0.07 || G.status !== 'anim')) imgRebuild();
-    ctx.setTransform(G.dpr, 0, 0, G.dpr, 0, 0); ctx.clearRect(0, 0, G.cw, G.ch); ctx.fillStyle = '#10141d'; ctx.fillRect(0, 0, G.cw, G.ch);
-    var pad = s * 1.4; ctx.fillStyle = PAPER; rrect(ox - pad, oy - pad, W + pad * 2, W + pad * 2, s * 2.4); ctx.fill();   // tek bütün, temiz zemin
-    drawHole(s); if (!IMG.ready) return;
-    ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
-    if (cfg.ghost) ctx.drawImage(IMG.ghost, ox, oy, W, W);                       // henüz inşa edilmemiş bölgeler: çok silik silüet
-    ctx.drawImage(IMG.built, ox, oy, W, W);                                      // inşa edilmiş bölgeler
-    if (G.status === 'won' && t - G.wonAt > 0) { ctx.globalAlpha = Math.min(1, (t - G.wonAt) / 0.9); ctx.drawImage(IMG.art, ox, oy, W, W); ctx.globalAlpha = 1; }   // tamamlanınca kusursuz resim
-    if (G.status === 'sealed' && G.sealedShown.length) {
-      if (!G.sealedCv) G.sealedCv = tint(smoothMask(G.sealedShown), 'rgb(255,120,40)');
-      ctx.save(); ctx.globalAlpha = 0.28 + 0.2 * Math.sin(t * 5); ctx.drawImage(G.sealedCv, ox, oy, W, W); ctx.restore();
+    // gecikmeli piksel teslimatları: işçi vardığında kümenin pikselleri tek tek belirir
+    if (G.revealQ && G.revealQ.length) {
+      var keep = []; G.revealQ.forEach(function (q) { if (q.at <= t) { G.visual[q.ti] = 1; imgReveal(q.ti); if (q.ti % 2 === 0 && IMG.sparks.length < 260) { var cell = G.level.targets[q.ti].cell; IMG.sparks.push({ x: cx(cell), y: cy(cell), t0: t }); } } else keep.push(q); }); G.revealQ = keep;
     }
-    if (G.read && G.status === 'idle' && (cfg.path === 'B' || cfg.path === 'C')) drawArtCritical(t);
-    if (G.selected >= 0 && G.status === 'idle') {   // ÖNİZLEME: seçili bölge resmin gerçek rengiyle, hafif nabızla belirir
-      var sp = sprite(G.selected), pulse = 0.5 + 0.5 * Math.sin(t * 5.2), x = ox + sp.c0 * s, y = oy + sp.r0 * s, w = sp.w * s, h = sp.h * s;
-      glow(sp.cv, x, y, w, h, 'rgba(255,255,255,.95)', s * (1.8 + 1.6 * pulse));
-      glow(sp.cv, x, y, w, h, 'rgba(80,45,20,.85)', Math.max(1.5, s * 0.25));
-      ctx.save(); ctx.globalAlpha = 0.6 + 0.34 * pulse; ctx.drawImage(sp.cv, x, y, w, h); ctx.restore();
+    ctx.setTransform(G.dpr, 0, 0, G.dpr, 0, 0); ctx.clearRect(0, 0, G.cw, G.ch); ctx.fillStyle = '#10141d'; ctx.fillRect(0, 0, G.cw, G.ch);
+    var pad = s * 3; ctx.fillStyle = PAPER; rrect(ox - pad, oy - pad, W + pad * 2, W + pad * 2, s * 5); ctx.fill();   // tek bütün, temiz zemin
+    drawHole(s); if (!IMG.ready) return;
+    ctx.imageSmoothingEnabled = false;
+    if (cfg.ghost) ctx.drawImage(IMG.ghost, ox, oy, W, W);                       // henüz inşa edilmemiş pikseller: çok silik silüet
+    ctx.drawImage(IMG.built, ox, oy, W, W);                                      // inşa edilmiş pikseller
+    if (G.status === 'sealed' && G.sealedShown.length) {
+      if (!G.sealedCv) G.sealedCv = pixCanvas(G.sealedShown, 'rgb(255,120,40)');
+      ctx.save(); ctx.globalAlpha = 0.3 + 0.2 * Math.sin(t * 5); ctx.drawImage(G.sealedCv, ox, oy, W, W); ctx.restore(); ctx.imageSmoothingEnabled = false;
+    }
+    if (G.read && G.status === 'idle' && (cfg.path === 'B' || cfg.path === 'C')) { drawArtCritical(t); ctx.imageSmoothingEnabled = false; }
+    if (G.selected >= 0 && G.status === 'idle') {   // ÖNİZLEME: seçili piksel yaması resmin gerçek renkleriyle, hafif nabızla belirir
+      var sp = sprite(G.selected), pulse = 0.5 + 0.5 * Math.sin(t * 5.2);
+      ctx.save(); ctx.globalAlpha = 0.55 + 0.4 * pulse; ctx.drawImage(sp.cv, ox + sp.c0 * s, oy + sp.r0 * s, sp.w * s, sp.h * s); ctx.restore(); ctx.imageSmoothingEnabled = false;
+      ctx.save(); ctx.translate(ox, oy); ctx.scale(s, s); ctx.lineJoin = 'miter'; ctx.shadowColor = 'rgba(255,255,255,.95)'; ctx.shadowBlur = s * (1.5 + 1.5 * pulse); ctx.strokeStyle = 'rgba(255,255,255,.95)'; ctx.lineWidth = 0.7; ctx.stroke(pieceEdge(G.selected));
+      ctx.shadowBlur = 0; ctx.strokeStyle = 'rgba(70,40,20,.9)'; ctx.lineWidth = 0.22; ctx.stroke(pieceEdge(G.selected)); ctx.restore();
     }
     if (G.read && G.status === 'idle' && (cfg.path === 'A' || cfg.path === 'C')) drawArtTrail(t);
-    if (G.flash) {   // yerleşen bölgenin tamamlanma parıltısı
+    if (G.flash) {   // tamamlanan yamanın parıltısı
       var age = t - G.flash.t0; if (age > 0.9) G.flash = null; else {
         var fs = sprite(G.flash.pi), fa = 1 - age / 0.9;
-        glow(fs.cv, ox + fs.c0 * s, oy + fs.r0 * s, fs.w * s, fs.h * s, 'rgba(255,255,255,' + fa.toFixed(2) + ')', s * (2 + age * 4));
-        ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = 0.35 * fa; ctx.drawImage(fs.cv, ox + fs.c0 * s, oy + fs.r0 * s, fs.w * s, fs.h * s); ctx.restore();
+        ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = 0.5 * fa; ctx.drawImage(fs.cv, ox + fs.c0 * s, oy + fs.r0 * s, fs.w * s, fs.h * s); ctx.restore(); ctx.imageSmoothingEnabled = false;
+        ctx.save(); ctx.translate(ox, oy); ctx.scale(s, s); ctx.globalAlpha = fa; ctx.shadowColor = '#fff'; ctx.shadowBlur = s * 3; ctx.strokeStyle = '#fff'; ctx.lineWidth = 0.6; ctx.stroke(pieceEdge(G.flash.pi)); ctx.restore();
       }
     }
-    IMG.sparks = IMG.sparks.filter(function (p) { return t - p.t0 < 0.45; });
-    IMG.sparks.forEach(function (p) { var a = (t - p.t0) / 0.45; ctx.globalAlpha = 1 - a; ctx.fillStyle = '#fff8d0'; ctx.beginPath(); ctx.arc(p.x, p.y - a * s * 0.8, s * (0.22 + 0.25 * (1 - a)), 0, 7); ctx.fill(); }); ctx.globalAlpha = 1;
+    IMG.sparks = IMG.sparks.filter(function (p) { return t - p.t0 < 0.4; });
+    IMG.sparks.forEach(function (p) { var a = (t - p.t0) / 0.4, z = Math.max(1.5, s * (0.5 + 0.6 * (1 - a))); ctx.globalAlpha = 1 - a; ctx.fillStyle = '#fff6c8'; ctx.fillRect(p.x - z / 2, p.y - a * s * 1.2 - z / 2, z, z); }); ctx.globalAlpha = 1;
     drawWorkers(t);
-    if (G.status === 'won') {   // parıltı süpürmesi (yalnız kedinin üzerinde)
-      var tmp = IMG.tmp || (IMG.tmp = mkCanvas(IMG.sil.width, IMG.sil.height)), g = tmp.getContext('2d'), Wp = tmp.width, sw = ((t - G.wonAt) * 0.9 % 1.6) * 1.6 * Wp - 0.3 * Wp;
-      g.globalCompositeOperation = 'source-over'; g.clearRect(0, 0, Wp, Wp); var gr = g.createLinearGradient(sw - 0.12 * Wp, 0, sw + 0.12 * Wp, 0.3 * Wp); gr.addColorStop(0, 'rgba(255,255,255,0)'); gr.addColorStop(0.5, 'rgba(255,255,255,.75)'); gr.addColorStop(1, 'rgba(255,255,255,0)');
-      g.fillStyle = gr; g.fillRect(0, 0, Wp, Wp); g.globalCompositeOperation = 'destination-in'; g.drawImage(IMG.sil, 0, 0); ctx.drawImage(tmp, ox, oy, W, W);
+    if (G.status === 'won') {   // parıltı süpürmesi (yalnız kedinin pikselleri üzerinde, basamaklı)
+      var tmp = IMG.tmp || (IMG.tmp = mkCanvas(N, N)), g = tmp.getContext('2d'), sw = ((t - G.wonAt) * 0.9 % 1.6) * 1.6 * N - 0.3 * N;
+      g.globalCompositeOperation = 'source-over'; g.clearRect(0, 0, N, N); var gr = g.createLinearGradient(sw - 0.12 * N, 0, sw + 0.12 * N, 0.3 * N); gr.addColorStop(0, 'rgba(255,255,255,0)'); gr.addColorStop(0.5, 'rgba(255,255,255,.7)'); gr.addColorStop(1, 'rgba(255,255,255,0)');
+      g.fillStyle = gr; g.fillRect(0, 0, N, N); g.globalCompositeOperation = 'destination-in'; g.drawImage(IMG.sil, 0, 0); ctx.drawImage(tmp, ox, oy, W, W);
     }
   }
   function hatch(ti, color, t, pulse) {
@@ -359,13 +373,13 @@
     });
     list.sort(function (a, b) { return a.y - b.y; });
     list.forEach(function (o) {
-      var w = o.w, done = w.state === 1, hop = done ? Math.abs(Math.sin((t - w.doneAt) * 14)) * s * 0.25 : 0, x = o.x, y = o.y - hop, r = G.lv.art ? Math.max(s * 0.3, 2.8) : s * 0.3;
+      var w = o.w, done = w.state === 1, hop = done ? Math.abs(Math.sin((t - w.doneAt) * 14)) * s * 0.25 : 0, x = o.x, y = o.y - hop, r = G.lv.art ? Math.max(s * 0.5, 2.4) : s * 0.3;
       ctx.fillStyle = 'rgba(0,0,0,.3)'; ctx.beginPath(); ctx.ellipse(o.x, o.y + r * 0.9, r * 0.9, r * 0.4, 0, 0, 7); ctx.fill();
       ctx.fillStyle = '#ff7a00'; ctx.beginPath(); ctx.arc(x, y, r, 0, 7); ctx.fill();
       ctx.fillStyle = '#f4d7b0'; ctx.beginPath(); ctx.arc(x, y - r * 0.85, r * 0.55, 0, 7); ctx.fill();
       ctx.fillStyle = '#ffd60a'; ctx.beginPath(); ctx.arc(x, y - r * 1.1, r * 0.6, Math.PI, 0); ctx.fill();
       ctx.strokeStyle = '#000'; ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(x, y, r, 0, 7); ctx.stroke();
-      if (!done) { if (G.lv.art) box(x - Math.max(s * 0.22, 2.2), y - r * 2.4 - 1, Math.max(s * 0.44, 4.4), IMG.colors[w.ti], 0); else box(x - s * 0.22, y - r * 2.3 - s * 0.08, s * 0.44, col(w.color), 0); }                   // taşınan kutu (parçanın kutularından biri)
+      if (!done) { if (G.lv.art) { var cz = Math.max(2, s * 1.3); ctx.fillStyle = w.cargo; ctx.fillRect(x - cz / 2, y - r * 2.1 - cz, cz, cz); ctx.strokeStyle = 'rgba(40,20,10,.8)'; ctx.lineWidth = 1; ctx.strokeRect(x - cz / 2 + 0.5, y - r * 2.1 - cz + 0.5, cz - 1, cz - 1); } else box(x - s * 0.22, y - r * 2.3 - s * 0.08, s * 0.44, col(w.color), 0); }                   // taşınan kutu (parçanın kutularından biri)
     });
   }
 
@@ -407,10 +421,11 @@
     G.pending = { sealed: res.sealed, won: res.won, stuck: res.stuck };
     G.dest = { cells: res.placed.slice() };
     // işçi takvimi (bir grup): varış sırası = yerleştirme sırası; grup birlikte yola çıkar
-    var v = (G.lv.art ? 36 : 7) * cfg.speed, gap = (G.lv.art ? 0.011 : 0.08) / cfg.speed, tr = routes.map(function (q) { return Math.max(1, q.length - 1) / v; }), T0 = 0.05;
-    for (var i = 0; i < res.placed.length; i++) T0 = Math.max(T0, tr[i] - i * gap + 0.05);
-    G.workers = res.placed.map(function (ti, i) { return { ti: ti, path: routes[i], depart: t0 + T0 + i * gap - tr[i], arrive: t0 + T0 + i * gap, travel: tr[i], color: p.col, state: 0, doneAt: 0 }; });
-    G.waveEnd = t0 + T0 + (res.placed.length - 1) * gap + 0.45;
+    var units = G.lv.art ? artClusters(res, routes) : res.placed.map(function (ti, i) { return { ti: ti, cells: [ti], path: routes[i] }; });
+    var v = (G.lv.art ? 44 : 7) * cfg.speed, gap = (G.lv.art ? 0.045 : 0.08) / cfg.speed, tr = units.map(function (u) { return Math.max(1, u.path.length - 1) / v; }), T0 = 0.05;
+    for (var i = 0; i < units.length; i++) T0 = Math.max(T0, tr[i] - i * gap + 0.05);
+    G.workers = units.map(function (u, i) { return { ti: u.ti, cells: u.cells, path: u.path, depart: t0 + T0 + i * gap - tr[i], arrive: t0 + T0 + i * gap, travel: tr[i], color: p.col, state: 0, doneAt: 0, cargo: G.lv.art ? IMG.colors[u.ti] : null }; });
+    G.waveEnd = t0 + T0 + (units.length - 1) * gap + 0.45 + (G.lv.art ? 0.25 : 0);
     var a = G.cur;
     a.tokens.push(p.id);
     a.moves.push({ i: a.moves.length + 1, token: p.id, color: p.ch, size: p.cells.length, shape: JSON.stringify(p.cells), t_ms: Date.now() - a.t0, decide_ms: Math.round((t0 - G.readyAt) * 1000),
@@ -419,6 +434,7 @@
     G.selected = -1; G.opt = null; G.read = null; G.previewSealed = []; G.previewStuck = false; G.status = 'anim'; saveLog(); refresh();
   }
   function finishWave() {
+    if (G.lv.art) { var pi0 = G.lastPi; G.revealQ = []; IMG.bctx.clearRect(0, 0, IMG.N, IMG.N); for (var q = 0; q < G.level.n; q++) if (G.st.filled[q]) imgReveal(q); }
     if (G.lv.art && G.dest) G.flash = { t0: now(), pi: G.lastPi };
     G.workers = []; G.dest = null; G.readyAt = now(); G.switches = 0; G.previews = [];
     var p = G.pending; G.pending = null;
@@ -482,7 +498,7 @@
       var p = L.pieces[pi], b = document.createElement('button'), cv = document.createElement('canvas'), ok = !!opts[pi], n = p.cells.length, c0 = col(p.col);
       if (G.lv.art) {
         b.className = 'pcard art' + (G.selected === pi ? ' sel' : '') + (ok ? '' : ' nofit'); b.id = 'slot' + slot; b.dataset.piece = p.id; b.dataset.i = pi; b.disabled = !idle || !ok; b.title = 'Parça ' + (slot + 1);
-        var bx = document.createElement('div'); bx.className = 'pshape'; drawSpriteTo(cv, pi, 96); bx.appendChild(cv); b.appendChild(bx);
+        var bx = document.createElement('div'); bx.className = 'pshape'; drawSpriteTo(cv, pi, 84); bx.appendChild(cv); b.appendChild(bx);
         var sn = document.createElement('span'); sn.className = 'pn'; sn.textContent = String(slot + 1); b.appendChild(sn);
         b.addEventListener('click', function () { select(pi); }); hand.appendChild(b); return;
       }
@@ -573,7 +589,7 @@
   function frame() {
     var t = now();
     if (G.status === 'anim') {
-      G.workers.forEach(function (w) { if (w.state === 0 && t >= w.arrive) { w.state = 1; w.doneAt = t; G.visual[w.ti] = 1; G.pops[w.ti] = t; if (G.lv.art) { imgReveal(w.ti); if (w.ti % 3 === 0 && IMG.sparks.length < 160) IMG.sparks.push({ x: cx(G.level.targets[w.ti].cell), y: cy(G.level.targets[w.ti].cell), t0: t }); } } });
+      G.workers.forEach(function (w) { if (w.state === 0 && t >= w.arrive) { w.state = 1; w.doneAt = t; if (G.lv.art) { (w.cells || [w.ti]).forEach(function (c, k) { G.revealQ.push({ ti: c, at: t + k * 0.02 }); }); } else { G.visual[w.ti] = 1; G.pops[w.ti] = t; } } });
       if (t >= G.waveEnd) { G.visual = new Uint8Array(G.st.filled); finishWave(); }
       else if (Math.floor(t * 8) !== frame.last) { frame.last = Math.floor(t * 8); refresh(); }
     }
@@ -620,6 +636,6 @@
   };
 
   // başlat
-  var start = cfg.test ? order[0] : (qs.get('level') && byId[qs.get('level')] ? qs.get('level') : (byId.CAT64 ? 'CAT64' : LEVELS[0].id));
+  var start = cfg.test ? order[0] : (qs.get('level') && byId[qs.get('level')] ? qs.get('level') : (byId.CAT96 ? 'CAT96' : LEVELS[0].id));
   G.testIdx = 0; loadLevel(start); requestAnimationFrame(frame);
 })();
