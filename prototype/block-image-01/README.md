@@ -2,6 +2,12 @@
 
 Bağımsız prototip (CAT96 / batch / piece kodundan türemedi). Tek dosya: **`dist/block-image-01.html`** (çift tıkla aç). Yeniden üretmek: `python3 tools/make_level.py blocks2 && python3 tools/build.py`.
 
+## Görsel dil (rev. 2)
+- Resmin dışı yerleştirilebilir değil ve çizilmiyor (beyaz oyun tahtası kartı yok); yalnız resim alanı var, grid çizgisi/hücre aralığı yok.
+- **Kart rengi ≠ resim rengi:** kartlarda blok tek renk (slot başına sabit: turuncu / mavi / yeşil; aynı renk birçok blokta tekrar eder, renk bir kural değildir). Resim ise gerçek renklerinde oluşur.
+- **Seçince:** hedef, gerçek renklerin açık bir silüeti + kart renginde glow/çerçeve (tam renkle doldurulmaz); işçi izi ve taşınan kutular kart renginde; yerleşince bloklar gerçek resim rengine dönüşür.
+- Mekanik, motor, el/kuyruk, hedef, erişilebilirlik, solver ve parity değişmedi (16/16).
+
 ## Oyun döngüsü
 GÖR (3 blok) → SEÇ (kart: hedef bloğu resimde belirir; göndermez) → GÖNDER → işçiler taşır → blok yerine oturur → resim büyür → o slota yeni blok gelir.
 - **Kartlar:** blokların kendi pixel-art renkleriyle şekli. Bir karta bas = o bloğun resimdeki TEK hedefi pulse + çerçeveyle belirir; aynı karta/Gönder'e bas = gönder. Üç hedef aynı anda gösterilmez.
