@@ -8,18 +8,20 @@
   var L = new BI.Level(LV.grid, LV.pieces, LV.hand), CELLCOL = [];   // CELLCOL (kedinin görünen rengi) aşağıda piece.color'dan kurulur; level verisindeki eski kedi renk listesi render kaynağı DEĞİLDİR
   // PARÇA RENGİ: level tasarımcısının verdiği piece.color (turuncu/mavi/kırmızı/yeşil). Hedef resimden TÜRETİLMEZ, slota bağlı DEĞİLDİR, mekanik DEĞİLDİR (yalnız görsel kimlik).
   var COLHEX = { orange: '#ff9f1c', blue: '#3b82f6', red: '#ef4444', green: '#2fb67c', dark: '#2e2a35' };
+  if (LV.palette) Object.keys(LV.palette).forEach(function (k) { COLHEX[k] = LV.palette[k]; });   // seviye paleti (ör. L01 doğal kedi tonları); renk yine YALNIZ piece.color'dan gelir
+  var BLOCKS = LV.style === 'blocks';   // 460 küçük fiziksel blok render'ı (mantıksal parça sayısından bağımsız)
   var PCOL = LV.pieces.map(function (p) { if (!COLHEX[p.color]) throw new Error('piece.color eksik: ' + p.id); return COLHEX[p.color]; });
   var OWNER = new Int32Array(L.n); L.pieces.forEach(function (p) { p.cells.forEach(function (ti) { OWNER[ti] = p.i; }); });
   for (var ci = 0; ci < L.n; ci++) CELLCOL[ci] = PCOL[OWNER[ci]];   // targetColor[cell] = owningPiece.color  (kedi = 25 parçanın birleşmiş hâli)
-  // RESİM RENGİ (yalnız art verisi olan seviyelerde, ör. L01): parçanın her hücresinin gerçek piksel-art rengi (piece.art). Kimlik rengi (piece.color) kartın/işçinin/önizleme çerçevesinin rengi olarak kalır.
-  var HAS_ART = !!(LV.pieces[0] && LV.pieces[0].art), ARTCOL = [];
-  if (HAS_ART) L.pieces.forEach(function (p, i) { p.cells.forEach(function (ti, k) { ARTCOL[ti] = LV.pieces[i].art[k]; }); });
-  var cfg = { colors: HAS_ART && qs.get('colors') !== 'piece' ? 'art' : 'piece', speed: Math.max(0.5, Math.min(200, parseFloat(qs.get('speed')) || 1)), path: ['0', 'A', 'B'].indexOf((qs.get('path') || '').toUpperCase()) >= 0 ? qs.get('path').toUpperCase() : 'A' };
+  var cfg = { speed: Math.max(0.5, Math.min(200, parseFloat(qs.get('speed')) || 1)), path: ['0', 'A', 'B'].indexOf((qs.get('path') || '').toUpperCase()) >= 0 ? qs.get('path').toUpperCase() : 'A' };
   var canvas = $('board'), ctx = canvas.getContext('2d');
   var G = { st: null, visual: null, status: 'idle', selected: -1, read: null, workers: [], pops: {}, history: [], waveEnd: 0, pending: null, wonAt: 0, sealedShown: [], sealedPath: null,
             s: 10, ox: 0, oy: 0, dpr: 1, cw: 0, ch: 0, handSig: '', flash: null, sparks: [] };
   function now() { return performance.now() / 1000; }
-  function cellCol(ti) { return cfg.colors === 'art' ? ARTCOL[ti] : CELLCOL[ti]; }
+  function cellCol(ti) { return CELLCOL[ti]; }   // hücre rengi = sahibi parçanın rengi (piece.color); piece.art render kaynağı DEĞİL
+  function ghostCol(col) { return mix(col, '#ffffff', BLOCKS ? 0.5 : 0.66); }   // hayalet = parça renginin açık tonu (hücre başına renk yok)
+  function hexShade(h, t) { var x = rgb(h), k = t < 0 ? 0 : 255, a = Math.abs(t); function c(v) { return Math.round(v + (k - v) * a).toString(16).padStart(2, '0'); } return '#' + c(x[0]) + c(x[1]) + c(x[2]); }
+  function glowCol(pi) { return BLOCKS ? hexShade(PCOL[pi], -0.38) : PCOL[pi]; }   // krem/pembe parçalarda çerçeve görünür kalsın diye koyulaştırılmış kimlik tonu
 
   // ---------------------------------------------------------------- renk
   function rgb(h) { var n = parseInt(h.slice(1), 16); return [(n >> 16) & 255, (n >> 8) & 255, n & 255]; }
@@ -44,7 +46,7 @@
   function send(slot) {
     if (G.status !== 'idle') return; var res = L.place(G.st, slot); if (!res) { setMsg('Bu blok şu an yerleşemez.', 'bad'); return; }
     var t0 = now(), before = G.st; G.history.push({ slot: slot, before: before, piece: res.piece }); G.st = res.state; G.pending = { sealed: res.sealed, won: res.won, stuck: res.stuck }; G.dest = res.cells.slice();
-    var steps = res.steps, v = (HAS_ART ? 64 : 48) * cfg.speed, gap = Math.min(0.03, 0.6 / Math.max(1, steps.length - 1)) / cfg.speed, tr = steps.map(function (s) { return Math.max(1, s.route.length - 1) / v; }), T0 = 0.05, i;
+    var steps = res.steps, v = (BLOCKS ? 64 : 48) * cfg.speed, gap = Math.min(0.03, 0.6 / Math.max(1, steps.length - 1)) / cfg.speed, tr = steps.map(function (s) { return Math.max(1, s.route.length - 1) / v; }), T0 = 0.05, i;
     for (i = 0; i < steps.length; i++) T0 = Math.max(T0, tr[i] - i * gap + 0.05);
     G.workers = steps.map(function (s, k) { return { ti: s.ti, path: s.route, depart: t0 + T0 + k * gap - tr[k], arrive: t0 + T0 + k * gap, travel: tr[k], state: 0, doneAt: 0, cargo: PCOL[res.piece] }; });
     G.waveEnd = t0 + T0 + (steps.length - 1) * gap + 0.22 / Math.sqrt(cfg.speed);
@@ -86,7 +88,7 @@
     g.fillStyle = 'rgba(0,0,0,.10)'; g.fillRect(px + sz - Math.max(1 / d, hl * 0.7), py + hl, Math.max(1 / d, hl * 0.7), sz - sh - hl);   // sağ kenar gölgesi
   }
   function block(g, x, y, s, color, pop, drop) {
-    if (cfg.colors === 'art') { artBlock(g, x, y, s, color, pop, drop); return; }   // küçük renkli blok: ince aralık, üstte ışık, altta gölge
+    if (BLOCKS) { artBlock(g, x, y, s, color, pop, drop); return; }   // küçük renkli blok: ince aralık, üstte ışık, altta gölge
     var gap = 0, k = 1 + (pop || 0), sz = (s - gap) * k, px = x + (s - sz) / 2, py = y + (s - sz) / 2;
     g.fillStyle = color; g.fillRect(px, py, sz, sz);
     g.fillStyle = 'rgba(255,255,255,.16)'; g.fillRect(px, py, sz, Math.max(1, sz * 0.12)); g.fillStyle = 'rgba(0,0,0,.10)'; g.fillRect(px, py + sz - Math.max(1, sz * 0.10), sz, Math.max(1, sz * 0.10));
@@ -104,7 +106,7 @@
   function drawHole() { var e = L.entrances[0], ex = G.ox + (e % L.w + 0.5) * G.s, ey = G.oy + L.h * G.s + G.s * 0.15; ctx.fillStyle = '#9b7a55'; ctx.beginPath(); ctx.ellipse(ex, ey, G.s * 2.6, G.s * 1.0, 0, 0, 7); ctx.fill(); ctx.fillStyle = '#4a3322'; ctx.beginPath(); ctx.ellipse(ex, ey + G.s * 0.08, G.s * 2.0, G.s * 0.72, 0, 0, 7); ctx.fill(); }
   function drawTrail(t) {
     var s = G.s, routes = G.read.routes, speed = 38, maxLen = 0, seen = {}; routes.forEach(function (r) { maxLen = Math.max(maxLen, r.length - 1); });
-    var pcol = PCOL[G.read.piece], cycle = maxLen / speed + 0.7, tt = t % cycle, rad = Math.max(2.4, s * 0.2); ctx.save();
+    var pcol = glowCol(G.read.piece), cycle = maxLen / speed + 0.7, tt = t % cycle, rad = Math.max(2.4, s * 0.2); ctx.save();
     routes.forEach(function (r) { ctx.fillStyle = 'rgba(120,80,40,.25)'; for (var i = 1; i < r.length - 1; i += 2) { if (seen[r[i]]) continue; seen[r[i]] = 1; ctx.beginPath(); ctx.arc(cx(r[i]), cy(r[i]), Math.max(1.3, s * 0.07), 0, 7); ctx.fill(); } });
     routes.forEach(function (r) {
       var steps = r.length - 1; if (steps <= 0) return; var f = tt * speed; if (f > steps + 0.5) return; var fade = f > steps ? Math.max(0, 1 - (f - steps) / 0.5) : 1;
@@ -129,26 +131,27 @@
       ctx.fillStyle = 'rgba(0,0,0,.18)'; ctx.beginPath(); ctx.ellipse(o.x, o.y + r * 0.9, r * 0.9, r * 0.4, 0, 0, 7); ctx.fill();
       ctx.fillStyle = '#ff7a00'; ctx.beginPath(); ctx.arc(x, y, r, 0, 7); ctx.fill(); ctx.fillStyle = '#f4d7b0'; ctx.beginPath(); ctx.arc(x, y - r * 0.85, r * 0.55, 0, 7); ctx.fill();
       ctx.fillStyle = '#ffd60a'; ctx.beginPath(); ctx.arc(x, y - r * 1.1, r * 0.6, Math.PI, 0); ctx.fill(); ctx.strokeStyle = 'rgba(0,0,0,.6)'; ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(x, y, r, 0, 7); ctx.stroke();
-      if (!done) { if (cfg.colors === 'art') { var cb = Math.max(s * 0.95, 7); artBlock(ctx, x - cb / 2, y - r * 2.2 - cb * 0.7, cb, ARTCOL[w.ti], 0, 0); } else { var cz = Math.max(s * 0.7, 6); ctx.fillStyle = w.cargo; ctx.fillRect(x - cz / 2, y - r * 2.2 - cz * 0.6, cz, cz); } }   // taşınan blok: tek renk (piece.color)
+      if (!done) { if (BLOCKS) { var cb = Math.max(s * 0.95, 7); artBlock(ctx, x - cb / 2, y - r * 2.2 - cb * 0.7, cb, w.cargo, 0, 0); } else { var cz = Math.max(s * 0.7, 6); ctx.fillStyle = w.cargo; ctx.fillRect(x - cz / 2, y - r * 2.2 - cz * 0.6, cz, cz); } }   // taşınan blok: tek renk (piece.color)
     });
   }
   function draw() {
     var t = now(), s = G.s, w = L.w, h = L.h, ox = G.ox, oy = G.oy;
     ctx.setTransform(G.dpr, 0, 0, G.dpr, 0, 0); ctx.clearRect(0, 0, G.cw, G.ch);
+    if (BLOCKS) { var pad = s * 0.9; ctx.fillStyle = '#e6d9bd'; rrg(ctx, ox - pad, oy - pad, w * s + pad * 2, (h - 1) * s + pad * 2, s * 0.9); ctx.fill(); }   // resim panosu
     drawHole();
     var preview = {}; if (G.read && G.status === 'idle') G.read.cells.forEach(function (ti) { preview[ti] = 1; });
     var sealedSet = {}; G.sealedShown.forEach(function (ti) { sealedSet[ti] = 1; });
     for (var ti = 0; ti < L.n; ti++) {
       var tg = L.targets[ti], x = ox + tg.c * s, y = oy + tg.r * s, col = cellCol(ti);
-      if (G.visual[ti]) { var age = t - (G.pops[ti] || -9); block(ctx, x, y, s, col, age < 0.22 ? 0.4 * (1 - age / 0.22) : 0, cfg.colors === 'art' && age < 0.16 ? (1 - age / 0.16) * s * 0.45 : 0); }
-      else if (cfg.colors === 'art') { var gp = Math.max(1, Math.round(s * G.dpr * 0.07)) / G.dpr; ctx.fillStyle = mix(col, '#ffffff', 0.68); ctx.fillRect(x + gp / 2, y + gp / 2, s - gp, s - gp); }   // hayalet: ince aralıklı soluk küçük kareler
+      if (G.visual[ti]) { var age = t - (G.pops[ti] || -9); block(ctx, x, y, s, col, age < 0.22 ? 0.4 * (1 - age / 0.22) : 0, BLOCKS && age < 0.16 ? (1 - age / 0.16) * s * 0.45 : 0); }
+      else if (BLOCKS) { var gp = Math.max(1, Math.round(s * G.dpr * 0.07)) / G.dpr; ctx.fillStyle = ghostCol(col); ctx.fillRect(x + gp / 2, y + gp / 2, s - gp, s - gp); }   // hayalet: ince aralıklı soluk küçük kareler
       else { ctx.fillStyle = mix(col, '#ffffff', 0.66); ctx.fillRect(x, y, s, s); }   // soluk hayalet resim (düz küçük bloklar)   // soluk hayalet resim (düz küçük bloklar)
     }
     var pulse = 0.5 + 0.5 * Math.sin(t * 5.2);
     if (G.read && G.status === 'idle') {   // seçili bloğun hedefi
       var rd = G.read; if (!rd.edge) rd.edge = edgePath(rd.cells);
-      var pc = PCOL[rd.piece];
-      rd.cells.forEach(function (ti2) { var tg2 = L.targets[ti2], gq = cfg.colors === 'art' ? Math.max(1, Math.round(s * G.dpr * 0.07)) / G.dpr : 0; ctx.fillStyle = mix(cellCol(ti2), '#ffffff', 0.5); ctx.fillRect(ox + tg2.c * s + gq / 2, oy + tg2.r * s + gq / 2, s - gq, s - gq); });   // kedinin final rengi (= parça rengi) açık tonu; üstüne glow/çerçeve
+      var pc = glowCol(rd.piece);
+      rd.cells.forEach(function (ti2) { var tg2 = L.targets[ti2], gq = BLOCKS ? Math.max(1, Math.round(s * G.dpr * 0.07)) / G.dpr : 0; ctx.fillStyle = mix(cellCol(ti2), '#ffffff', 0.5); ctx.fillRect(ox + tg2.c * s + gq / 2, oy + tg2.r * s + gq / 2, s - gq, s - gq); });   // kedinin final rengi (= parça rengi) açık tonu; üstüne glow/çerçeve
       ctx.save(); ctx.translate(ox, oy); ctx.scale(s, s); ctx.lineJoin = 'miter'; ctx.shadowColor = pc; ctx.shadowBlur = s * (1.1 + 1.1 * pulse); ctx.strokeStyle = pc; ctx.lineWidth = 0.34; ctx.stroke(rd.edge); ctx.shadowBlur = 0; ctx.strokeStyle = '#fff'; ctx.lineWidth = 0.08; ctx.stroke(rd.edge); ctx.restore();
       if (cfg.path === 'B' && rd.cut.length) {   // kritik alan (geliştirici modu): yerleşince erişilemeyecek hücreler
         ctx.save(); ctx.fillStyle = 'rgba(255,170,30,' + (0.35 + 0.3 * pulse).toFixed(2) + ')'; rd.cut.forEach(function (ti3) { var tg3 = L.targets[ti3]; ctx.fillRect(ox + tg3.c * s, oy + tg3.r * s, s, s); }); ctx.restore();
@@ -169,20 +172,20 @@
   // ---------------------------------------------------------------- el / panel
   function drawPieceTo(cv, pi, cell) {
     var cs = L.pieces[pi].cells.map(function (ti) { return L.targets[ti]; }), r0 = 1e9, c0 = 1e9, r1 = -1, c1 = -1; cs.forEach(function (t) { r0 = Math.min(r0, t.r); c0 = Math.min(c0, t.c); r1 = Math.max(r1, t.r); c1 = Math.max(c1, t.c); });
-    if (HAS_ART) { var small = window.innerWidth < 720; cell = Math.max(3, Math.min(cell, Math.floor((small ? 88 : 116) / (c1 - c0 + 1)), Math.floor((small ? 60 : 84) / (r1 - r0 + 1)))); }   // büyük parçalar karta sığsın
+    if (BLOCKS) { var small = window.innerWidth < 720; cell = Math.max(3, Math.min(cell, Math.floor((small ? 88 : 116) / (c1 - c0 + 1)), Math.floor((small ? 60 : 84) / (r1 - r0 + 1)))); }   // büyük parçalar karta sığsın
     var wpx = (c1 - c0 + 1) * cell, hpx = (r1 - r0 + 1) * cell, d = window.devicePixelRatio || 1; cv.style.width = wpx + 'px'; cv.style.height = hpx + 'px'; cv.width = Math.round(wpx * d); cv.height = Math.round(hpx * d);
-    var g = cv.getContext('2d'); g.setTransform(d, 0, 0, d, 0, 0); var artMode = cfg.colors === 'art'; L.pieces[pi].cells.forEach(function (ti) { var t = L.targets[ti]; if (artMode) { artBlock(g, (t.c - c0) * cell, (t.r - r0) * cell, cell, ARTCOL[ti], 0, 0); return; } g.fillStyle = PCOL[pi]; g.fillRect((t.c - c0) * cell, (t.r - r0) * cell, cell - 1, cell - 1); });   // piece modu: TEK renk, düz · resim modu: gerçek pikseller
+    var g = cv.getContext('2d'); g.setTransform(d, 0, 0, d, 0, 0); cv.dataset.cell = cell; cv.dataset.c0 = c0; cv.dataset.r0 = r0; L.pieces[pi].cells.forEach(function (ti) { var t = L.targets[ti]; if (BLOCKS) { artBlock(g, (t.c - c0) * cell, (t.r - r0) * cell, cell, PCOL[pi], 0, 0); return; } g.fillStyle = PCOL[pi]; g.fillRect((t.c - c0) * cell, (t.r - r0) * cell, cell - 1, cell - 1); });   // piece modu: TEK renk, düz · resim modu: gerçek pikseller
   }
   function buildHand(seen, idle) {
     var hand = $('hand'), cards = L.cards(seen), opts = L.options(seen);
-    var key = cards.map(function (c, i) { return c === null ? '-' : c + (opts[i] ? 'f' : 'x'); }).join(',') + '|' + G.selected + '|' + (idle ? 1 : 0) + '|' + cfg.colors; if (key === G.handSig) return; G.handSig = key; hand.innerHTML = '';
+    var key = cards.map(function (c, i) { return c === null ? '-' : c + (opts[i] ? 'f' : 'x'); }).join(',') + '|' + G.selected + '|' + (idle ? 1 : 0); if (key === G.handSig) return; G.handSig = key; hand.innerHTML = '';
     cards.forEach(function (c, slot) {
       var b = document.createElement('button'), cv = document.createElement('canvas'), pn = document.createElement('span'); pn.className = 'pn';
       if (c === null) {   // kuyruk bitti: slot görünür kalır (boş yuva), ama bekleyen parça varsa asla boş olmaz (L.audit denetler)
         b.className = 'card empty'; b.id = 'slot' + slot; b.dataset.slot = slot; b.dataset.piece = ''; b.disabled = true; b.title = 'Blok ' + (slot + 1) + ' — kuyruk bitti'; pn.textContent = String(slot + 1) + ' · kuyruk bitti'; b.appendChild(pn); hand.appendChild(b); return;
       }
       var ok = !!opts[slot];   // yerleşemeyen kart GİZLENMEZ: soluk görünür, nedeni yazılır, basınca açıklama çıkar
-      b.className = 'card' + (G.selected === slot ? ' sel' : '') + (ok ? '' : ' nofit'); b.id = 'slot' + slot; b.dataset.slot = slot; b.dataset.piece = L.pieces[c].id; b.disabled = !idle; b.title = 'Blok ' + (slot + 1); b.style.borderColor = G.selected === slot ? PCOL[c] : ''; if (G.selected === slot) b.style.boxShadow = '0 0 0 3px ' + PCOL[c] + '44, 0 2px 0 ' + PCOL[c];
+      b.className = 'card' + (G.selected === slot ? ' sel' : '') + (ok ? '' : ' nofit'); b.id = 'slot' + slot; b.dataset.slot = slot; b.dataset.piece = L.pieces[c].id; b.disabled = !idle; b.title = 'Blok ' + (slot + 1); b.style.borderColor = G.selected === slot ? glowCol(c) : ''; if (G.selected === slot) b.style.boxShadow = '0 0 0 3px ' + glowCol(c) + '44, 0 2px 0 ' + glowCol(c);
       drawPieceTo(cv, c, window.innerWidth < 720 ? 13 : 17); b.appendChild(cv); pn.textContent = String(slot + 1) + (ok ? '' : ' · yol kapalı'); b.appendChild(pn);
       b.addEventListener('click', function () { select(slot); }); hand.appendChild(b);
     });
@@ -194,10 +197,8 @@
     $('progTxt').textContent = 'Resim %' + Math.round(100 * done / L.n) + ' · ' + G.history.length + ' / ' + LV.pieces.length + ' blok';
     buildHand(seen, idle); $('sendBtn').disabled = !(idle && G.selected >= 0);
     Array.prototype.forEach.call(document.querySelectorAll('#pathPills button'), function (b) { b.classList.toggle('on', b.dataset.m === cfg.path); });
-    Array.prototype.forEach.call(document.querySelectorAll('#colPills button'), function (b) { b.classList.toggle('on', b.dataset.c === cfg.colors); });
   }
   function setPath(m) { cfg.path = m; refresh(); }
-  function setColors(m) { if (!HAS_ART) return; cfg.colors = m === 'piece' ? 'piece' : 'art'; G.handSig = ''; refresh(); }
   function showModal(html) { $('modalBody').innerHTML = html; $('modal').classList.add('show'); }
   function runParity() {
     var ok = 0, total = 0, bad = [], rows = '';
@@ -215,7 +216,6 @@
     draw(); requestAnimationFrame(frame);
   }
   if (LV.title) { var bs = document.querySelector('.brand small'); if (bs) bs.textContent = LV.title; document.title = 'Blok Resim · ' + LV.title; }
-  if (HAS_ART) { $('colPills').style.display = 'flex'; Array.prototype.forEach.call(document.querySelectorAll('#colPills button'), function (b) { b.addEventListener('click', function () { setColors(b.dataset.c); }); }); }
   $('restartBtn').addEventListener('click', newGame); $('sendBtn').addEventListener('click', function () { if (G.selected >= 0) send(G.selected); }); $('parityBtn').addEventListener('click', runParity);
   $('modalClose').addEventListener('click', function () { $('modal').classList.remove('show'); });
   $('speedSel').addEventListener('change', function () { cfg.speed = parseFloat(this.value); });
@@ -235,11 +235,15 @@
     read: function () { return G.read ? { cells: G.read.cells.slice(), routes: G.read.routes.map(function (r) { return r.slice(); }), cut: G.read.cut.slice() } : null; },
     workerPaths: function () { return G.workers.map(function (w) { return w.path.slice(); }); }, workerCount: function () { return G.workers.length; },
     geo: function () { return { ox: G.ox, oy: G.oy, s: G.s, dpr: G.dpr }; }, alphaAt: function (x, y) { return ctx.getImageData(x, y, 1, 1).data[3]; },
-    pieceColor: function (pi) { return LV.pieces[pi].color; }, targetColors: function (pi) { return L.pieces[pi].cells.map(function (ti) { return CELLCOL[ti]; }); }, targetColor: function (ti) { return CELLCOL[ti]; }, owner: function (ti) { return OWNER[ti]; }, ghostPixel: function (ti) { return CBGAME.cellPixel(ti); },
+    pieceHex: function (pi) { return PCOL[pi]; }, pieceColor: function (pi) { return LV.pieces[pi].color; }, targetColors: function (pi) { return L.pieces[pi].cells.map(function (ti) { return CELLCOL[ti]; }); }, targetColor: function (ti) { return CELLCOL[ti]; }, owner: function (ti) { return OWNER[ti]; }, ghostPixel: function (ti) { return CBGAME.cellPixel(ti); },
     cardPixels: function (pi) { var cv = document.createElement('canvas'); drawPieceTo(cv, pi, 17); var d = cv.getContext('2d').getImageData(0, 0, cv.width, cv.height).data, set = {}; for (var i = 0; i < d.length; i += 4) if (d[i + 3] > 0) set[d[i] + ',' + d[i + 1] + ',' + d[i + 2] + ',' + d[i + 3]] = 1; return Object.keys(set); },
     cellPixel: function (ti) { var t = L.targets[ti], d = G.dpr, x = Math.round((G.ox + (t.c + 0.5) * G.s) * d), y = Math.round((G.oy + (t.r + 0.5) * G.s) * d), p = ctx.getImageData(x, y, 1, 1).data; return [p[0], p[1], p[2]]; },
     workerCargo: function () { return G.workers.map(function (w) { return w.cargo; }); }, hexToRgb: rgb,
-    handDiag: handDiag, setColors: setColors, artColor: function (ti) { return ARTCOL[ti]; }, colorMode: function () { return cfg.colors; }, restart: newGame, setPath: setPath, runParity: runParity, level: L, info: LV
+    handDiag: handDiag, restart: newGame, blocks: BLOCKS,
+    cardFaces: function (pi) { var cv = document.createElement('canvas'); drawPieceTo(cv, pi, 17); var cell = parseFloat(cv.dataset.cell), c0 = +cv.dataset.c0, r0 = +cv.dataset.r0, g = cv.getContext('2d'), d = window.devicePixelRatio || 1, set = {}; L.pieces[pi].cells.forEach(function (ti) { var t = L.targets[ti], p = g.getImageData(Math.round(((t.c - c0) * cell + cell * 0.42) * d), Math.round(((t.r - r0) * cell + cell * 0.45) * d), 1, 1).data; set[p[0] + ',' + p[1] + ',' + p[2]] = 1; }); return Object.keys(set); },
+    renderedFace: function (ti, ghost) { var cv = document.createElement('canvas'); cv.width = cv.height = 20; var g = cv.getContext('2d'); if (ghost) { g.fillStyle = ghostCol(cellCol(ti)); g.fillRect(1, 1, 18, 18); } else block(g, 0, 0, 20, cellCol(ti), 0, 0); var p = g.getImageData(10, 9, 1, 1).data; return [p[0], p[1], p[2]]; },
+    previewFill: function (ti) { return mix(cellCol(ti), '#ffffff', 0.5); },
+    cellFace: function (ti) { var t = L.targets[ti], d = G.dpr, p = ctx.getImageData(Math.round((G.ox + (t.c + 0.42) * G.s) * d), Math.round((G.oy + (t.r + 0.45) * G.s) * d), 1, 1).data; return [p[0], p[1], p[2]]; }, setPath: setPath, runParity: runParity, level: L, info: LV
   };
   layout(); newGame(); requestAnimationFrame(frame);
 })();
