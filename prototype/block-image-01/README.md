@@ -2,6 +2,14 @@
 
 Bağımsız prototip (CAT96 / batch / piece kodundan türemedi). Tek dosya: **`dist/block-image-01.html`** (çift tıkla aç). Yeniden üretmek: `python3 tools/make_level.py blocks2 && python3 tools/build.py`.
 
+## CAT ART PASS (rev. 6) — kedi = 25 renkli parçanın birleşmiş hâli
+- **Silüet yeniden çizildi** (`tools/make_level.py` içindeki `ART`; her hücre sahibi parçanın harfiyle yazılı, elle): 2 üçgen kulak, geniş baş, **2 göz (1 hücrelik gerçek parça, `dark`)**, **burun (1 hücrelik gerçek parça, `dark`)**, boyun, gövde, iki pati ve gövdeden ayrışan, **3 parçalık kıvrımlı kuyruk (25 hücre)**. Toplam **188 hücre / 25 parça**, her hücre tam bir parçaya ait, her parça bağlı.
+- **Renkler:** turuncu 7 · mavi 5 · kırmızı 4 · yeşil 6 · dark 3 (göz×2, burun). Bitişik parçalar farklı renk (4-boyama; aynı renkli komşu çift = 0), kulaklar farklı renk, her kuyrukta ≥ 3 renk, ilk el farklı 3 renk. Renk bir kural değil; grid çizgisi yok, sınırlar renkten okunur.
+- **Dekoratif çizim yok:** gözler/burun/kuyruk canvas'a çizilmiyor; kedi yalnız hedef hücreler + parçalar + `piece.color`'dan oluşuyor (QA: hedef olmayan 358 hücrenin hiçbirinde çizim yok).
+- **Mekanik değişmedi** (engine/ref aynı). Yeni seviye için solver yeniden çalıştırıldı: çözülebilir; 2.65×10⁸ kazanan sıra; 113 karar durumu, 121 anında + 4 gecikmeli tuzak; rasgele el oyunuyla kazanma ≈ %0.34; kazanan hatlar boyunca ortalama ≈ 14 anlamlı karar (min 5, maks 21). Parity 16/16.
+- **QA:** `node tests/qa_color.js` → `targetPieceColorParity: 188/188 PASS`, `25/25 pieces monochrome: PASS`, `pieceToTargetColorParity: PASS`, `finalCatColorSource: piece.color`, `catFeatureCoverage: PASS`.
+- Eski otomatik-bölme üreticisi `tools/make_level_auto_v1.py` (referans); animasyon hızı biraz artırıldı (blok ≈ 0.8–1 sn).
+
 ## Görsel dil (rev. 2)
 - Resmin dışı yerleştirilebilir değil ve çizilmiyor (beyaz oyun tahtası kartı yok); yalnız resim alanı var, grid çizgisi/hücre aralığı yok.
 - **Renk sistemi (rev. 5, kesin):** her parçanın level verisinde kendi `color`ı var (turuncu 6 · mavi 6 · kırmızı 6 · yeşil 7); hedef resimden türetilmez, slota/çözüme bağlı değil, mekanik değil. **Kedi = 25 parçanın birleşmiş hâli:** `targetColor[cell] = owningPiece.color`; eski kedi renk listesi (`colors[]`/`palette`) level verisinde uyumluluk için duruyor ama render'da kullanılmaz. Kart, taşınan kutu, hayalet/önizleme (açık ton + glow) ve yerleşmiş hücreler aynı renk dilini taşır; yerleşince renk değişmez. Otomatik QA: `node tests/qa_color.js` (targetPieceColorParity 188/188, 25/25 pieces monochrome, pieceToTargetColorParity, finalCatColorSource: piece.color).

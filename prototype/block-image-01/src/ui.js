@@ -7,7 +7,7 @@
   var $ = function (id) { return document.getElementById(id); };
   var L = new BI.Level(LV.grid, LV.pieces, LV.hand), CELLCOL = [];   // CELLCOL (kedinin görünen rengi) aşağıda piece.color'dan kurulur; level verisindeki eski kedi renk listesi render kaynağı DEĞİLDİR
   // PARÇA RENGİ: level tasarımcısının verdiği piece.color (turuncu/mavi/kırmızı/yeşil). Hedef resimden TÜRETİLMEZ, slota bağlı DEĞİLDİR, mekanik DEĞİLDİR (yalnız görsel kimlik).
-  var COLHEX = { orange: '#ff9f1c', blue: '#3b82f6', red: '#ef4444', green: '#2fb67c' };
+  var COLHEX = { orange: '#ff9f1c', blue: '#3b82f6', red: '#ef4444', green: '#2fb67c', dark: '#2e2a35' };
   var PCOL = LV.pieces.map(function (p) { if (!COLHEX[p.color]) throw new Error('piece.color eksik: ' + p.id); return COLHEX[p.color]; });
   var OWNER = new Int32Array(L.n); L.pieces.forEach(function (p) { p.cells.forEach(function (ti) { OWNER[ti] = p.i; }); });
   for (var ci = 0; ci < L.n; ci++) CELLCOL[ci] = PCOL[OWNER[ci]];   // targetColor[cell] = owningPiece.color  (kedi = 25 parçanın birleşmiş hâli)
@@ -40,10 +40,10 @@
   function send(slot) {
     if (G.status !== 'idle') return; var res = L.place(G.st, slot); if (!res) { setMsg('Bu blok şu an yerleşemez.', 'bad'); return; }
     var t0 = now(), before = G.st; G.history.push({ slot: slot, before: before, piece: res.piece }); G.st = res.state; G.pending = { sealed: res.sealed, won: res.won, stuck: res.stuck }; G.dest = res.cells.slice();
-    var steps = res.steps, v = 40 * cfg.speed, gap = 0.04 / cfg.speed, tr = steps.map(function (s) { return Math.max(1, s.route.length - 1) / v; }), T0 = 0.05, i;
+    var steps = res.steps, v = 48 * cfg.speed, gap = 0.03 / cfg.speed, tr = steps.map(function (s) { return Math.max(1, s.route.length - 1) / v; }), T0 = 0.05, i;
     for (i = 0; i < steps.length; i++) T0 = Math.max(T0, tr[i] - i * gap + 0.05);
     G.workers = steps.map(function (s, k) { return { ti: s.ti, path: s.route, depart: t0 + T0 + k * gap - tr[k], arrive: t0 + T0 + k * gap, travel: tr[k], state: 0, doneAt: 0, cargo: PCOL[res.piece] }; });
-    G.waveEnd = t0 + T0 + (steps.length - 1) * gap + 0.32 / Math.sqrt(cfg.speed);
+    G.waveEnd = t0 + T0 + (steps.length - 1) * gap + 0.22 / Math.sqrt(cfg.speed);
     G.selected = -1; G.read = null; G.status = 'anim'; setMsg(''); refresh();
   }
   function finishWave() {
@@ -201,6 +201,7 @@
     destCells: function () { return G.dest ? G.dest.slice().sort(function (a, b) { return a - b; }) : null; },
     read: function () { return G.read ? { cells: G.read.cells.slice(), routes: G.read.routes.map(function (r) { return r.slice(); }), cut: G.read.cut.slice() } : null; },
     workerPaths: function () { return G.workers.map(function (w) { return w.path.slice(); }); }, workerCount: function () { return G.workers.length; },
+    geo: function () { return { ox: G.ox, oy: G.oy, s: G.s, dpr: G.dpr }; }, alphaAt: function (x, y) { return ctx.getImageData(x, y, 1, 1).data[3]; },
     pieceColor: function (pi) { return LV.pieces[pi].color; }, targetColors: function (pi) { return L.pieces[pi].cells.map(function (ti) { return CELLCOL[ti]; }); }, targetColor: function (ti) { return CELLCOL[ti]; }, owner: function (ti) { return OWNER[ti]; }, ghostPixel: function (ti) { return CBGAME.cellPixel(ti); },
     cardPixels: function (pi) { var cv = document.createElement('canvas'); drawPieceTo(cv, pi, 17); var d = cv.getContext('2d').getImageData(0, 0, cv.width, cv.height).data, set = {}; for (var i = 0; i < d.length; i += 4) if (d[i + 3] > 0) set[d[i] + ',' + d[i + 1] + ',' + d[i + 2] + ',' + d[i + 3]] = 1; return Object.keys(set); },
     cellPixel: function (ti) { var t = L.targets[ti], d = G.dpr, x = Math.round((G.ox + (t.c + 0.5) * G.s) * d), y = Math.round((G.oy + (t.r + 0.5) * G.s) * d), p = ctx.getImageData(x, y, 1, 1).data; return [p[0], p[1], p[2]]; },
