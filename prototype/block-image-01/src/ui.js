@@ -6,9 +6,9 @@
   var LV = window.BI_LEVEL, VEC = window.BI_VECTORS || [], BI = window.BI, qs = new URLSearchParams(location.search);
   var $ = function (id) { return document.getElementById(id); };
   var L = new BI.Level(LV.grid, LV.pieces, LV.hand), PAL = LV.palette, CELLCOL = L.targets.map(function (t, i) { return PAL[LV.colors[i]]; });
-  // KART RENGİ = bloğun resimdeki gerçek (baskın) hedef rengi; bloğun tüm hücreleri bu tek renkte çizilir. Slotla ilgisi YOK; renk bir kural değil, yalnız ayırt etmek içindir.
-  var PCOL = L.pieces.map(function (p) { var cnt = {}, best = null; p.cells.forEach(function (ti) { var k = LV.colors[ti]; cnt[k] = (cnt[k] || 0) + 1; }); var keys = Object.keys(cnt); if (qs.get('pcol') === 'accent') { var nb = keys.filter(function (k) { return PAL[k] !== '#4a2a1a'; }); if (nb.length) keys = nb; }   // ?pcol=accent: koyu çizgi rengini yok say (deneme seçeneği)
-    keys.forEach(function (k) { if (best === null || cnt[k] > cnt[best] || (cnt[k] === cnt[best] && +k < +best)) best = k; }); return PAL[best]; });
+  // PARÇA RENGİ: level tasarımcısının verdiği piece.color (turuncu/mavi/kırmızı/yeşil). Hedef resimden TÜRETİLMEZ, slota bağlı DEĞİLDİR, mekanik DEĞİLDİR (yalnız görsel kimlik).
+  var COLHEX = { orange: '#ff9f1c', blue: '#3b82f6', red: '#ef4444', green: '#2fb67c' };
+  var PCOL = LV.pieces.map(function (p) { if (!COLHEX[p.color]) throw new Error('piece.color eksik: ' + p.id); return COLHEX[p.color]; });
   var cfg = { speed: Math.max(0.5, Math.min(200, parseFloat(qs.get('speed')) || 1)), path: ['0', 'A', 'B'].indexOf((qs.get('path') || '').toUpperCase()) >= 0 ? qs.get('path').toUpperCase() : 'A' };
   var canvas = $('board'), ctx = canvas.getContext('2d');
   var G = { st: null, visual: null, status: 'idle', selected: -1, read: null, workers: [], pops: {}, history: [], waveEnd: 0, pending: null, wonAt: 0, sealedShown: [], sealedPath: null,
@@ -105,7 +105,7 @@
       ctx.fillStyle = 'rgba(0,0,0,.18)'; ctx.beginPath(); ctx.ellipse(o.x, o.y + r * 0.9, r * 0.9, r * 0.4, 0, 0, 7); ctx.fill();
       ctx.fillStyle = '#ff7a00'; ctx.beginPath(); ctx.arc(x, y, r, 0, 7); ctx.fill(); ctx.fillStyle = '#f4d7b0'; ctx.beginPath(); ctx.arc(x, y - r * 0.85, r * 0.55, 0, 7); ctx.fill();
       ctx.fillStyle = '#ffd60a'; ctx.beginPath(); ctx.arc(x, y - r * 1.1, r * 0.6, Math.PI, 0); ctx.fill(); ctx.strokeStyle = 'rgba(0,0,0,.6)'; ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(x, y, r, 0, 7); ctx.stroke();
-      if (!done) { var cz = Math.max(s * 0.7, 6); block(ctx, x - cz / 2, y - r * 2.2 - cz * 0.6, cz, w.cargo, 0); }
+      if (!done) { var cz = Math.max(s * 0.7, 6); ctx.fillStyle = w.cargo; ctx.fillRect(x - cz / 2, y - r * 2.2 - cz * 0.6, cz, cz); }   // taşınan blok: tek renk (piece.color)
     });
   }
   function draw() {
@@ -123,7 +123,7 @@
     if (G.read && G.status === 'idle') {   // seçili bloğun hedefi
       var rd = G.read; if (!rd.edge) rd.edge = edgePath(rd.cells);
       var pc = PCOL[rd.piece];
-      rd.cells.forEach(function (ti2) { var tg2 = L.targets[ti2]; ctx.fillStyle = mix(CELLCOL[ti2], '#ffffff', 0.5); ctx.fillRect(ox + tg2.c * s, oy + tg2.r * s, s, s); ctx.fillStyle = pc; ctx.globalAlpha = 0.22 + 0.2 * pulse; ctx.fillRect(ox + tg2.c * s, oy + tg2.r * s, s, s); ctx.globalAlpha = 1; });
+      rd.cells.forEach(function (ti2) { var tg2 = L.targets[ti2]; ctx.fillStyle = mix(CELLCOL[ti2], '#ffffff', 0.5); ctx.fillRect(ox + tg2.c * s, oy + tg2.r * s, s, s); });   // yalnız gerçek renklerin açık tonu (kart rengiyle boyanmaz)
       ctx.save(); ctx.translate(ox, oy); ctx.scale(s, s); ctx.lineJoin = 'miter'; ctx.shadowColor = pc; ctx.shadowBlur = s * (1.1 + 1.1 * pulse); ctx.strokeStyle = pc; ctx.lineWidth = 0.34; ctx.stroke(rd.edge); ctx.shadowBlur = 0; ctx.strokeStyle = '#fff'; ctx.lineWidth = 0.08; ctx.stroke(rd.edge); ctx.restore();
       if (cfg.path === 'B' && rd.cut.length) {   // kritik alan (geliştirici modu): yerleşince erişilemeyecek hücreler
         ctx.save(); ctx.fillStyle = 'rgba(255,170,30,' + (0.35 + 0.3 * pulse).toFixed(2) + ')'; rd.cut.forEach(function (ti3) { var tg3 = L.targets[ti3]; ctx.fillRect(ox + tg3.c * s, oy + tg3.r * s, s, s); }); ctx.restore();
@@ -145,7 +145,7 @@
   function drawPieceTo(cv, pi, cell) {
     var cs = L.pieces[pi].cells.map(function (ti) { return L.targets[ti]; }), r0 = 1e9, c0 = 1e9, r1 = -1, c1 = -1; cs.forEach(function (t) { r0 = Math.min(r0, t.r); c0 = Math.min(c0, t.c); r1 = Math.max(r1, t.r); c1 = Math.max(c1, t.c); });
     var wpx = (c1 - c0 + 1) * cell, hpx = (r1 - r0 + 1) * cell, d = window.devicePixelRatio || 1; cv.style.width = wpx + 'px'; cv.style.height = hpx + 'px'; cv.width = Math.round(wpx * d); cv.height = Math.round(hpx * d);
-    var g = cv.getContext('2d'); g.setTransform(d, 0, 0, d, 0, 0); L.pieces[pi].cells.forEach(function (ti) { var t = L.targets[ti]; block(g, (t.c - c0) * cell, (t.r - r0) * cell, cell, PCOL[pi], 0); g.strokeStyle = 'rgba(60,40,20,.28)'; g.lineWidth = 1; g.strokeRect((t.c - c0) * cell + 0.5, (t.r - r0) * cell + 0.5, cell - 1, cell - 1); });
+    var g = cv.getContext('2d'); g.setTransform(d, 0, 0, d, 0, 0); g.fillStyle = PCOL[pi]; L.pieces[pi].cells.forEach(function (ti) { var t = L.targets[ti]; g.fillRect((t.c - c0) * cell, (t.r - r0) * cell, cell - 1, cell - 1); });   // TEK renk, düz
   }
   function buildHand(seen, idle) {
     var hand = $('hand'), cards = L.cards(seen), opts = L.options(seen);
@@ -199,6 +199,10 @@
     destCells: function () { return G.dest ? G.dest.slice().sort(function (a, b) { return a - b; }) : null; },
     read: function () { return G.read ? { cells: G.read.cells.slice(), routes: G.read.routes.map(function (r) { return r.slice(); }), cut: G.read.cut.slice() } : null; },
     workerPaths: function () { return G.workers.map(function (w) { return w.path.slice(); }); }, workerCount: function () { return G.workers.length; },
+    pieceColor: function (pi) { return LV.pieces[pi].color; }, targetColors: function (pi) { return L.pieces[pi].cells.map(function (ti) { return CELLCOL[ti]; }); },
+    cardPixels: function (pi) { var cv = document.createElement('canvas'); drawPieceTo(cv, pi, 17); var d = cv.getContext('2d').getImageData(0, 0, cv.width, cv.height).data, set = {}; for (var i = 0; i < d.length; i += 4) if (d[i + 3] > 0) set[d[i] + ',' + d[i + 1] + ',' + d[i + 2] + ',' + d[i + 3]] = 1; return Object.keys(set); },
+    cellPixel: function (ti) { var t = L.targets[ti], d = G.dpr, x = Math.round((G.ox + (t.c + 0.5) * G.s) * d), y = Math.round((G.oy + (t.r + 0.5) * G.s) * d), p = ctx.getImageData(x, y, 1, 1).data; return [p[0], p[1], p[2]]; },
+    workerCargo: function () { return G.workers.map(function (w) { return w.cargo; }); }, hexToRgb: rgb,
     restart: newGame, setPath: setPath, runParity: runParity, level: L, info: LV
   };
   layout(); newGame(); requestAnimationFrame(frame);

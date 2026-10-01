@@ -114,6 +114,26 @@ def patterns(pieces, order):
     P['blocks2'] = [sorted([order[i] for i in range(len(order)) if (i // 2) % 3 == k], key=lambda j: rank[j]) for k in range(3)]
     return P
 
+
+COLOR_NAMES = ['orange', 'blue', 'red', 'green']; COLOR_COUNTS = [6, 6, 6, 7]
+
+def assign_colors(L, pieces, hand, memo):
+    """Her PARÇANIN kendi rengi (level tasarımcısı verisi): turuncu 6, mavi 6, kırmızı 6, yeşil 7. Hedef resimden TÜRETİLMEZ, slota bağlı DEĞİLDİR, çözüme bağlı DEĞİLDİR.
+    Yalnız görsel kolaylık: sabit tohumlu karıştırma + 'erişilebilir eller'de 3 kartın farklı renk olma oranını artıran seçim; her kuyrukta 4 rengin de bulunması şart (renk slotu belli etmesin)."""
+    states = list(memo.keys()); n = len(pieces); base = [c for c, k in zip(range(4), COLOR_COUNTS) for _ in range(k)]; best = None
+    for seed in range(4000):
+        rng = random.Random(seed); cols = base[:]; rng.shuffle(cols)
+        if any(len({cols[L.pid[x]] for x in q}) < 4 for q in hand): continue
+        if [cols[h] for h in L.cards(L.new_state())] != [0, 1, 2]: continue   # ilk el: turuncu · mavi · kırmızı (yalnız başlangıç; sonraki eller serbest)
+        sc = 0.0
+        for st in states:
+            heads = [c for c in L.cards(st) if c is not None]; sc += len({cols[h] for h in heads}) / max(1, len(heads))
+        sc /= len(states)
+        if best is None or sc > best[0]: best = (sc, seed, cols)
+    sc, seed, cols = best
+    for i, p in enumerate(pieces): p['color'] = COLOR_NAMES[cols[i]]
+    print('parça renkleri:', {c: sum(1 for p in pieces if p['color'] == c) for c in COLOR_NAMES}, 'ortalama farklı-renk oranı (3 kart):', round(sc, 3), 'tohum', seed)
+
 if __name__ == '__main__':
     seed, pieces = build()
     print('hücre', len(TG), 'blok', len(pieces), 'boyutlar', sorted(len(p['cells']) for p in pieces), 'tohum', seed, 'farklı şekil', len({shape_key([tuple(x) for x in p['cells']]) for p in pieces}))
@@ -128,6 +148,7 @@ if __name__ == '__main__':
     s, hand, trap0 = res[pick]; L = Level(GRID, pieces, hand)
     # kazanan hat (geçerli sıra) + serpiştirilmiş kazanan hat (DP)
     memo, root = L.analyse(); assert root[0], 'çözülemez'
+    assign_colors(L, pieces, hand, memo)
     def walk(prefer):
         st = L.new_state(); seq = []; k = 0
         while True:
