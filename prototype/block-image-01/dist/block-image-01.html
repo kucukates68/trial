@@ -136,10 +136,12 @@ footer#controls { display:flex; gap:12px; justify-content:center; align-items:st
   'use strict';
   var LV = window.BI_LEVEL, VEC = window.BI_VECTORS || [], BI = window.BI, qs = new URLSearchParams(location.search);
   var $ = function (id) { return document.getElementById(id); };
-  var L = new BI.Level(LV.grid, LV.pieces, LV.hand), PAL = LV.palette, CELLCOL = L.targets.map(function (t, i) { return PAL[LV.colors[i]]; });
+  var L = new BI.Level(LV.grid, LV.pieces, LV.hand), CELLCOL = [];   // CELLCOL (kedinin görünen rengi) aşağıda piece.color'dan kurulur; level verisindeki eski kedi renk listesi render kaynağı DEĞİLDİR
   // PARÇA RENGİ: level tasarımcısının verdiği piece.color (turuncu/mavi/kırmızı/yeşil). Hedef resimden TÜRETİLMEZ, slota bağlı DEĞİLDİR, mekanik DEĞİLDİR (yalnız görsel kimlik).
   var COLHEX = { orange: '#ff9f1c', blue: '#3b82f6', red: '#ef4444', green: '#2fb67c' };
   var PCOL = LV.pieces.map(function (p) { if (!COLHEX[p.color]) throw new Error('piece.color eksik: ' + p.id); return COLHEX[p.color]; });
+  var OWNER = new Int32Array(L.n); L.pieces.forEach(function (p) { p.cells.forEach(function (ti) { OWNER[ti] = p.i; }); });
+  for (var ci = 0; ci < L.n; ci++) CELLCOL[ci] = PCOL[OWNER[ci]];   // targetColor[cell] = owningPiece.color  (kedi = 25 parçanın birleşmiş hâli)
   var cfg = { speed: Math.max(0.5, Math.min(200, parseFloat(qs.get('speed')) || 1)), path: ['0', 'A', 'B'].indexOf((qs.get('path') || '').toUpperCase()) >= 0 ? qs.get('path').toUpperCase() : 'A' };
   var canvas = $('board'), ctx = canvas.getContext('2d');
   var G = { st: null, visual: null, status: 'idle', selected: -1, read: null, workers: [], pops: {}, history: [], waveEnd: 0, pending: null, wonAt: 0, sealedShown: [], sealedPath: null,
@@ -254,7 +256,7 @@ footer#controls { display:flex; gap:12px; justify-content:center; align-items:st
     if (G.read && G.status === 'idle') {   // seçili bloğun hedefi
       var rd = G.read; if (!rd.edge) rd.edge = edgePath(rd.cells);
       var pc = PCOL[rd.piece];
-      rd.cells.forEach(function (ti2) { var tg2 = L.targets[ti2]; ctx.fillStyle = mix(CELLCOL[ti2], '#ffffff', 0.5); ctx.fillRect(ox + tg2.c * s, oy + tg2.r * s, s, s); });   // yalnız gerçek renklerin açık tonu (kart rengiyle boyanmaz)
+      rd.cells.forEach(function (ti2) { var tg2 = L.targets[ti2]; ctx.fillStyle = mix(CELLCOL[ti2], '#ffffff', 0.5); ctx.fillRect(ox + tg2.c * s, oy + tg2.r * s, s, s); });   // kedinin final rengi (= parça rengi) açık tonu; üstüne glow/çerçeve
       ctx.save(); ctx.translate(ox, oy); ctx.scale(s, s); ctx.lineJoin = 'miter'; ctx.shadowColor = pc; ctx.shadowBlur = s * (1.1 + 1.1 * pulse); ctx.strokeStyle = pc; ctx.lineWidth = 0.34; ctx.stroke(rd.edge); ctx.shadowBlur = 0; ctx.strokeStyle = '#fff'; ctx.lineWidth = 0.08; ctx.stroke(rd.edge); ctx.restore();
       if (cfg.path === 'B' && rd.cut.length) {   // kritik alan (geliştirici modu): yerleşince erişilemeyecek hücreler
         ctx.save(); ctx.fillStyle = 'rgba(255,170,30,' + (0.35 + 0.3 * pulse).toFixed(2) + ')'; rd.cut.forEach(function (ti3) { var tg3 = L.targets[ti3]; ctx.fillRect(ox + tg3.c * s, oy + tg3.r * s, s, s); }); ctx.restore();
@@ -330,7 +332,7 @@ footer#controls { display:flex; gap:12px; justify-content:center; align-items:st
     destCells: function () { return G.dest ? G.dest.slice().sort(function (a, b) { return a - b; }) : null; },
     read: function () { return G.read ? { cells: G.read.cells.slice(), routes: G.read.routes.map(function (r) { return r.slice(); }), cut: G.read.cut.slice() } : null; },
     workerPaths: function () { return G.workers.map(function (w) { return w.path.slice(); }); }, workerCount: function () { return G.workers.length; },
-    pieceColor: function (pi) { return LV.pieces[pi].color; }, targetColors: function (pi) { return L.pieces[pi].cells.map(function (ti) { return CELLCOL[ti]; }); },
+    pieceColor: function (pi) { return LV.pieces[pi].color; }, targetColors: function (pi) { return L.pieces[pi].cells.map(function (ti) { return CELLCOL[ti]; }); }, targetColor: function (ti) { return CELLCOL[ti]; }, owner: function (ti) { return OWNER[ti]; }, ghostPixel: function (ti) { return CBGAME.cellPixel(ti); },
     cardPixels: function (pi) { var cv = document.createElement('canvas'); drawPieceTo(cv, pi, 17); var d = cv.getContext('2d').getImageData(0, 0, cv.width, cv.height).data, set = {}; for (var i = 0; i < d.length; i += 4) if (d[i + 3] > 0) set[d[i] + ',' + d[i + 1] + ',' + d[i + 2] + ',' + d[i + 3]] = 1; return Object.keys(set); },
     cellPixel: function (ti) { var t = L.targets[ti], d = G.dpr, x = Math.round((G.ox + (t.c + 0.5) * G.s) * d), y = Math.round((G.oy + (t.r + 0.5) * G.s) * d), p = ctx.getImageData(x, y, 1, 1).data; return [p[0], p[1], p[2]]; },
     workerCargo: function () { return G.workers.map(function (w) { return w.cargo; }); }, hexToRgb: rgb,

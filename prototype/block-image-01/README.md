@@ -4,7 +4,7 @@ Bağımsız prototip (CAT96 / batch / piece kodundan türemedi). Tek dosya: **`d
 
 ## Görsel dil (rev. 2)
 - Resmin dışı yerleştirilebilir değil ve çizilmiyor (beyaz oyun tahtası kartı yok); yalnız resim alanı var, grid çizgisi/hücre aralığı yok.
-- **Parça rengi (rev. 4, kesin):** her parçanın level verisinde kendi `color` değeri var (turuncu 6 · mavi 6 · kırmızı 6 · yeşil 7); hedef resimden TÜRETİLMEZ, slota ve çözüme bağlı değildir, mekanik değildir. Kart, taşınan kutular = tek renk `piece.color`; yerleşince hedef resmin gerçek renklerine dönüşür. İlk el turuncu · mavi · kırmızı. Otomatik QA: `node tests/qa_color.js` (pieceColorMode / 25/25 monochrome pieces / targetColorIndependent).
+- **Renk sistemi (rev. 5, kesin):** her parçanın level verisinde kendi `color`ı var (turuncu 6 · mavi 6 · kırmızı 6 · yeşil 7); hedef resimden türetilmez, slota/çözüme bağlı değil, mekanik değil. **Kedi = 25 parçanın birleşmiş hâli:** `targetColor[cell] = owningPiece.color`; eski kedi renk listesi (`colors[]`/`palette`) level verisinde uyumluluk için duruyor ama render'da kullanılmaz. Kart, taşınan kutu, hayalet/önizleme (açık ton + glow) ve yerleşmiş hücreler aynı renk dilini taşır; yerleşince renk değişmez. Otomatik QA: `node tests/qa_color.js` (targetPieceColorParity 188/188, 25/25 pieces monochrome, pieceToTargetColorParity, finalCatColorSource: piece.color).
 - **Seçince:** hedef, gerçek renklerin açık bir silüeti + kart renginde glow/çerçeve (tam renkle doldurulmaz); işçi izi ve taşınan kutular kart renginde; yerleşince bloklar gerçek resim rengine dönüşür.
 - Mekanik, motor, el/kuyruk, hedef, erişilebilirlik, solver ve parity değişmedi (16/16).
 
