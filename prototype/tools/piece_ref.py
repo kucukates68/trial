@@ -44,7 +44,8 @@ class PLevel:
         self.targets = [(r, c, self.letters.index(ch)) for r, c, ch in cells]
         self.n = len(self.targets)
         self.tidx = {(r, c): i for i, (r, c, _) in enumerate(self.targets)}
-        self.pieces = [dict(id=p['id'], ch=p['ch'], col=self.letters.index(p['ch']), cells=norm([tuple(x) for x in p['cells']])) for p in pieces]
+        self.pieces = [dict(id=p['id'], ch=p['ch'], col=self.letters.index(p['ch']), cells=norm([tuple(x) for x in p['cells']]), fixed=bool(p.get('fixed')),
+                            at=(min(x[0] for x in p['cells']), min(x[1] for x in p['cells']))) for p in pieces]
         self.P = len(self.pieces)
         cnt = Counter(t[2] for t in self.targets); pc = Counter()
         for p in self.pieces: pc[p['col']] += len(p['cells'])
@@ -69,8 +70,10 @@ class PLevel:
     def positions(self, filled, pi, dist=None):
         dist = dist if dist is not None else self.bfs(filled)
         p = self.pieces[pi]; out = []
-        for r in range(self.h):
-            for c in range(self.w):
+        rr = [p['at'][0]] if p['fixed'] else range(self.h)      # fixed: parçanın hedef bölgesi önceden tanımlı (tek olası konum)
+        cc = [p['at'][1]] if p['fixed'] else range(self.w)
+        for r in rr:
+            for c in cc:
                 ok = True; tis = []; ds = []
                 for dr, dc in p['cells']:
                     cell = (r + dr, c + dc); ti = self.tidx.get(cell)

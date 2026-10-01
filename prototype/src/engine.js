@@ -153,7 +153,7 @@
     this.pieces = pieces.map(function (p, i) {
       var r0 = Infinity, c0 = Infinity; p.cells.forEach(function (x) { r0 = Math.min(r0, x[0]); c0 = Math.min(c0, x[1]); });
       var cells = p.cells.map(function (x) { return [x[0] - r0, x[1] - c0]; }).sort(function (a, b) { return a[0] - b[0] || a[1] - b[1]; });
-      return { i: i, id: p.id, ch: p.ch, col: self.letters.indexOf(p.ch), cells: cells };
+      return { i: i, id: p.id, ch: p.ch, col: self.letters.indexOf(p.ch), cells: cells, fixed: !!p.fixed, ar: r0, ac: c0 };
     });
     this.P = this.pieces.length;
   }
@@ -164,7 +164,8 @@
   // parçanın tüm olası konumları (mevcut dolu durumda)
   PLevel.prototype.positions = function (filled, pi, bfsRes) {
     var b = bfsRes || this.bfs(filled), p = this.pieces[pi], out = [], D = b.dist, w = this.w;
-    for (var r = 0; r < this.h; r++) for (var c = 0; c < w; c++) {
+    var rLo = p.fixed ? p.ar : 0, rHi = p.fixed ? p.ar + 1 : this.h, cLo = p.fixed ? p.ac : 0, cHi = p.fixed ? p.ac + 1 : w;   // fixed: hedef bölge önceden tanımlı
+    for (var r = rLo; r < rHi; r++) for (var c = cLo; c < cHi; c++) {
       var ok = true, tis = [], dmin = 1e9, dsum = 0;
       for (var k = 0; k < p.cells.length; k++) {
         var rr = r + p.cells[k][0], cc = c + p.cells[k][1];

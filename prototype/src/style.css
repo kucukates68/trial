@@ -46,3 +46,5 @@ footer#controls { display:flex; flex-wrap:wrap; gap:10px; align-items:stretch; j
 #pathPills button { padding:3px 10px; font-size:12px; border-radius:14px; background:#0009; border:1px solid #ffffff33; color:#dfe6f5; }
 #pathPills button.on { background:var(--acc); color:#111; border-color:var(--acc); font-weight:700; }
 #pathTag { position:absolute; left:12px; top:40px; font-size:11px; color:#9aa6bd; pointer-events:none; z-index:2; }
+.pcard.art { background:#fdf7ec; border-color:#d9c9a6; min-width:120px; padding:8px 12px; } .pcard.art .pshape { min-height:100px; } .pcard.art .pn { color:#8a7a5a; font-size:11px; }
+.pcard.art.sel { border-color:var(--acc); background:#fff3cf; }

@@ -30,13 +30,13 @@
       <table id="stock"></table>
       <div id="msg" class="info"></div>
       <div id="selBox"><canvas id="selShape"></canvas><div id="selInfo" class="meta"></div></div>
-      <div class="meta">Gönderilen parçalar (kutu sayısı):</div><div id="history"></div>
-      <details id="rules" open><summary>Kurallar</summary><ul>
-        <li>Elinde hep <b>3 parça</b> var (renk, şekil, hücre sayısı). Sen yalnız hangisini göndereceğini seçersin.</li>
-        <li>Bir karta bas: <b>tam şekli</b> görünür, tahtada <b>gideceği tüm hücreler</b> yanıp söner. Göndermez; üçüne de bakıp karşılaştırabilirsin.</li>
-        <li>Hedef konum: parçanın şu an yerleşebileceği yerler içinde <b>girişe en yakın erişilebilir</b> olan (ilk prototip kuralı).</li>
-        <li><b>Gönder</b>: işçiler parçayı tek grup taşır; yerleşen kutular <b>kalıcı engel</b> olur. Gönderilen kartın yerine yalnız o rengin sıradaki parçası gelir.</li>
-        <li>Bir boş hücreye yol kalmazsa ya da hiçbir parça yerleşemezse seviye <b>kaybedilir</b>.</li></ul></details>
+      <div class="meta">Gönderilen parçalar:</div><div id="history"></div>
+      <details id="rules" open><summary>Nasıl oynanır</summary><ul>
+        <li>Elinde hep <b>3 parça</b> var: resmin bir bölgesi. Sen yalnız hangisini göndereceğini seçersin.</li>
+        <li>Bir karta bas: o bölge resmin üzerinde <b>parlar</b> ve hedefi görünür. Göndermez; üçüne de bakıp karşılaştırabilirsin.</li>
+        <li>Işık noktaları işçilerin <b>gerçek rotasıdır</b>. Turuncu parlama: bu bölge yerleşince oraya giden yol kapanır.</li>
+        <li><b>Gönder</b>: işçiler bölgeyi inşa eder; biten bölge <b>kalıcı engel</b> olur. Gönderilen kartın yerine yalnız o slotun sıradaki parçası gelir.</li>
+        <li>Bir bölgeye giden yol kapanırsa seviye <b>kaybedilir</b>. Tüm bölgeler dolunca resim tamamlanır.</li></ul></details>
       <details id="dev"><summary>Geliştirici / araştırma bilgisi</summary><div id="devInfo" class="meta"></div></details>
     </aside>
   </main>
@@ -49,7 +49,10 @@
 <div id="modal"><div class="box"><div id="modalBody"></div><p style="text-align:right"><button id="modalClose">Kapat</button></p></div></div>
 <script>/*__ENGINE__*/</script>
 <script>/*__LEVELS__*/</script>
+<script>/*__LEVELS2__*/</script>
 <script>/*__VECTORS__*/</script>
+<script>/*__VECTORS2__*/</script>
+<script>/*__ART__*/</script>
 <script>/*__UI__*/</script>
 </body>
 </html>
