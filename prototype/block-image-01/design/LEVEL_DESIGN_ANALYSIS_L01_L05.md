@@ -6,7 +6,7 @@ Yöntem: `tools/human_flow.py` (salt-okunur) — oyuncunun görebileceği tüm d
 
 ## 0. Yapısal bulgu (her şeyi etkiliyor)
 - Kartlar asla "bloklu" olmuyor: oyuncunun ulaşabildiği hiçbir durumda yasal olmayan kart yok (blocked = 0, tüm leveller). Erişim kapanması kartı kapatmaz; **mühürleyerek oyunu bitirir**. Yani her elde seçim = "3 karttan hangisi güvenli?".
-- Boş (yerleşmemiş) hedefler tahtada çizilmiyor; oyuncu yalnız yerleşmiş blokları ve **seçtiği kartın** hedefini görüyor. Mühürlenecek/kapanacak parça (mağdur) ekranda görünmüyor; oyuncu resmi tahmin etmek zorunda.
+- DÜZELTME (ilk sürümde yanlış yazmıştım): yerleşmemiş hedefler tahtada soluk (silik) olarak görünüyor, yerleşenler canlı; resmin tamamı oyuncuya açık. Seçili kartın hedefi ayrıca parlıyor. Görünmeyen şey mağdur parça değil, **kapanma ilişkisi** (hangi hücrenin hangi rotaya bağlı olduğu). Geliştirici modu 'Kritik' seçili kartın anında kilitleyeceği hücreleri turuncu gösteriyor; gecikmeli sonucu göstermiyor.
 
 ## 1. Oyuncu karar akışı (faz = ilk/orta/son üçte bir; serbest = 3 kart da güvenli; tuzaklı = ≥1 kart kaybettiriyor)
 | | L01 | L02 | L03 | L04 | L05 |
@@ -38,7 +38,7 @@ Oyuncu gerçekten düşünmek zorunda değil: ilk üçte birde elin %98'i tamame
 ## 4. L04 gecikmeli tuzak
 - 17 gecikmeli tuzak hamlesi, 16'sı DECK_L, 1'i DECK_R; derinlik 19–28. Mağdur: TRUNK (10), HOOD (7). Kapanma: DECK_L ortadan bir yolu keser; TRUNK/HOOD kuyruk sonunda beklerken REAR_UP / DECK_R / FRONT_UP kalan tek yolu da kapatır.
 - Gecikme: en erken 1 hamle sonra, en geç 11 hamle sonra (tek yoldan çıkış yok); 3 çıkmaz durumda tüm kartlar kaybettiriyor.
-- İnsan okunabilirliği: **şu an solver'a ait ilişki.** TRUNK/HOOD tahtada çizilmediği için oyuncu "bunu koyarsam şu kapanır" diyemez; yalnız arabanın şeklini bilirse tahmin eder. Ayrıca kayıp, sebepten 1–11 hamle sonra görüldüğü için hata DECK_L'ye değil son karta atfedilir. Oynayarak doğrulanmalı.
+- İnsan okunabilirliği: TRUNK/HOOD bölgesi tahtada soluk olarak görünüyor; ama "DECK_L'yi koyarsam TRUNK'a giden son yol REAR_UP/DECK_R ile kapanır" ilişkisi çizilmiyor, zihinde rota izlemek gerekiyor ('Kritik' modu yalnız anında kilidi gösterir). Kayıp, sebepten 1–11 hamle sonra görüldüğü için hata DECK_L'ye değil son karta atfedilir. Oynayarak doğrulanmalı; "solver'a ait ilişki" demek için kanıtım yok.
 - Aynı geometri, farklı kuyruk sırasıyla (TRUNK/DECK/HOOD erken↔geç) gecikmeli tuzak 0 ↔ 17: gecikmeyi yaratan şey kuyruk sırası.
 
 ## 5. Her levelın temel puzzle sorusu
@@ -65,7 +65,7 @@ Oyuncu gerçekten düşünmek zorunda değil: ilk üçte birde elin %98'i tamame
 3. Gerçek karar = elinde ≥1 kaybettiren kart olan el; ilk üçte birde serbest oran ~%90'ı aşan açılış (L05 %98) karar sayılmaz.
 4. Seçim genişliği (3 kart) sabit; zorluk "3 karttan kaçı güvenli" ve bunun ne sıklıkla değiştiğiyle ayarlanır.
 5. Gecikmeli sonuç geometriden değil kuyruk sırasından üretilir (L04: aynı parçalar, 0→17).
-6. Gecikmeli tuzak yalnız mağdur ve kapanan yol oyuncuya görünür/tahmin edilebilirse sayılır; şu an boş hedefler çizilmediği için doğrulanmadı.
+6. Gecikmeli tuzak yalnız kapanan rota oyuncunun zihinde izleyebileceği kadar kısaysa sayılır; mağdur parça görünüyor ama rota ilişkisi çizilmiyor — insan testiyle doğrulanmadı.
 7. Planlama gerektiren (≥2 hamle ileri) derinlik şu an yalnız L04'te; "zor/peak" seviye bunu taşımalı, parça küçültmek tek başına taşımıyor.
 8. Parça küçüklüğü okunabilirlik riskidir (1 hücrelik parça, 2 hücrelik kulp); eşik insan testiyle belirlenecek, o zamana dek yeni zorluk kolu olarak kullanılmaz.
 9. Testere dişi, parça sayısı değil kapı sayısı/derinliği (anında vs gecikmeli) ile kurulmalı; L02→L05 sırası bugün bunu yansıtmıyor.

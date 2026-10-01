@@ -1,0 +1,92 @@
+{
+ "hand": [
+  [
+   "Kap\u0131 A",
+   "Oda 1"
+  ],
+  [
+   "Kap\u0131 C",
+   "Oda 2"
+  ],
+  [
+   "Kap\u0131 B"
+  ]
+ ],
+ "win": [
+  0,
+  0,
+  1,
+  1,
+  2
+ ],
+ "win_mixed": [
+  0,
+  1,
+  0,
+  1,
+  2
+ ],
+ "win_reverse": [
+  0,
+  1,
+  0,
+  1,
+  2
+ ],
+ "trap_seq": [
+  2,
+  1
+ ],
+ "stats": {
+  "solvable": true,
+  "p_random": 0.12963,
+  "winning_orders": 6,
+  "decision_states": 8,
+  "free_states": 0,
+  "forced_states": 1,
+  "trap_instant": 5,
+  "trap_delayed": 3,
+  "n_states": 12
+ },
+ "fast": {
+  "solvable": true,
+  "orders": 6,
+  "start_safe": 3,
+  "start_moves": 3,
+  "start_win_moves": 2,
+  "start_closes": {
+   "0": [
+    2
+   ],
+   "1": [
+    2
+   ],
+   "2": [
+    0,
+    1
+   ]
+  },
+  "states": 12,
+  "infl": 3,
+  "fork": 3,
+  "delayed": 3,
+  "lagmin": 1,
+  "deep": 0,
+  "lags": [
+   1,
+   1,
+   1
+  ],
+  "surv_max": 0,
+  "deepsurv": 0,
+  "safe_win": 0.5,
+  "midsurv": 0
+ },
+ "colors": {
+  "Oda 1": "c_1",
+  "Oda 2": "c_2",
+  "Kap\u0131 A": "c_A",
+  "Kap\u0131 B": "c_B",
+  "Kap\u0131 C": "c_C"
+ }
+}

@@ -1,0 +1,119 @@
+{
+ "hand": [
+  [
+   "\u00dcst bar",
+   "Sa\u011f s\u00fctun",
+   "Sol s\u00fctun",
+   "Kap\u0131 A"
+  ],
+  [
+   "Kap\u0131 C",
+   "Tepe 1",
+   "Oda 1"
+  ],
+  [
+   "Kap\u0131 B",
+   "Tepe 2",
+   "Oda 2"
+  ]
+ ],
+ "win": [
+  0,
+  0,
+  0,
+  2,
+  2,
+  2,
+  1,
+  1,
+  1,
+  0
+ ],
+ "win_mixed": [
+  0,
+  0,
+  2,
+  0,
+  2,
+  2,
+  1,
+  1,
+  1,
+  0
+ ],
+ "win_reverse": [
+  2,
+  0,
+  0,
+  2,
+  0,
+  2,
+  1,
+  1,
+  1,
+  0
+ ],
+ "trap_seq": [
+  2,
+  1
+ ],
+ "stats": {
+  "solvable": true,
+  "p_random": 0.01811,
+  "winning_orders": 50,
+  "decision_states": 17,
+  "free_states": 3,
+  "forced_states": 2,
+  "trap_instant": 15,
+  "trap_delayed": 5,
+  "n_states": 38
+ },
+ "fast": {
+  "solvable": true,
+  "orders": 50,
+  "start_safe": 3,
+  "start_moves": 3,
+  "start_win_moves": 2,
+  "start_closes": {
+   "0": [
+    1
+   ],
+   "1": [
+    0,
+    2
+   ],
+   "2": [
+    1
+   ]
+  },
+  "states": 38,
+  "infl": 4,
+  "fork": 4,
+  "delayed": 5,
+  "lagmin": 1,
+  "deep": 0,
+  "lags": [
+   1,
+   1,
+   1,
+   1,
+   1
+  ],
+  "surv_max": 4,
+  "deepsurv": 5,
+  "safe_win": 0.5324074074074074,
+  "midsurv": 4
+ },
+ "colors": {
+  "Oda 1": "c_1",
+  "Oda 2": "c_2",
+  "Kap\u0131 A": "c_A",
+  "Kap\u0131 B": "c_B",
+  "Kap\u0131 C": "c_C",
+  "Sol s\u00fctun": "c_l",
+  "Tepe 1": "c_p",
+  "Tepe 2": "c_q",
+  "Sa\u011f s\u00fctun": "c_r",
+  "\u00dcst bar": "c_u"
+ }
+}

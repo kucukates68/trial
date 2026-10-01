@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="336" height="220" viewBox="0 0 336 220" font-family="sans-serif">
+<rect width="100%" height="100%" fill="#f4ecd8"/>
+<rect x="84" y="0" width="28" height="28" fill="#4f8fd6" stroke="#fff" stroke-width="1"/>
+<rect x="112" y="0" width="28" height="28" fill="#4f8fd6" stroke="#fff" stroke-width="1"/>
+<rect x="168" y="0" width="28" height="28" fill="#3aa6a6" stroke="#fff" stroke-width="1"/>
+<rect x="196" y="0" width="28" height="28" fill="#3aa6a6" stroke="#fff" stroke-width="1"/>
+<rect x="84" y="28" width="28" height="28" fill="#4f8fd6" stroke="#fff" stroke-width="1"/>
+<rect x="112" y="28" width="28" height="28" fill="#4f8fd6" stroke="#fff" stroke-width="1"/>
+<rect x="168" y="28" width="28" height="28" fill="#3aa6a6" stroke="#fff" stroke-width="1"/>
+<rect x="196" y="28" width="28" height="28" fill="#3aa6a6" stroke="#fff" stroke-width="1"/>
+<rect x="28" y="56" width="28" height="28" fill="#e8833a" stroke="#fff" stroke-width="1"/>
+<rect x="56" y="56" width="28" height="28" fill="#e8833a" stroke="#fff" stroke-width="1"/>
+<rect x="84" y="56" width="28" height="28" fill="#e8833a" stroke="#fff" stroke-width="1"/>
+<rect x="112" y="56" width="28" height="28" fill="#d9a441" stroke="#fff" stroke-width="1"/>
+<rect x="140" y="56" width="28" height="28" fill="#d9a441" stroke="#fff" stroke-width="1"/>
+<rect x="168" y="56" width="28" height="28" fill="#d9a441" stroke="#fff" stroke-width="1"/>
+<rect x="196" y="56" width="28" height="28" fill="#c4572e" stroke="#fff" stroke-width="1"/>
+<rect x="224" y="56" width="28" height="28" fill="#c4572e" stroke="#fff" stroke-width="1"/>
+<rect x="252" y="56" width="28" height="28" fill="#c4572e" stroke="#fff" stroke-width="1"/>
+<rect x="28" y="84" width="28" height="28" fill="#e8833a" stroke="#fff" stroke-width="1"/>
+<rect x="56" y="84" width="28" height="28" fill="#e8833a" stroke="#fff" stroke-width="1"/>
+<rect x="84" y="84" width="28" height="28" fill="#e8833a" stroke="#fff" stroke-width="1"/>
+<rect x="112" y="84" width="28" height="28" fill="#d9a441" stroke="#fff" stroke-width="1"/>
+<rect x="140" y="84" width="28" height="28" fill="#d9a441" stroke="#fff" stroke-width="1"/>
+<rect x="168" y="84" width="28" height="28" fill="#d9a441" stroke="#fff" stroke-width="1"/>
+<rect x="196" y="84" width="28" height="28" fill="#c4572e" stroke="#fff" stroke-width="1"/>
+<rect x="224" y="84" width="28" height="28" fill="#c4572e" stroke="#fff" stroke-width="1"/>
+<rect x="252" y="84" width="28" height="28" fill="#c4572e" stroke="#fff" stroke-width="1"/>
+<rect x="28" y="112" width="28" height="28" fill="#e9dfc6"/>
+<rect x="56" y="112" width="28" height="28" fill="#e9dfc6"/>
+<rect x="84" y="112" width="28" height="28" fill="#e9dfc6"/>
+<rect x="112" y="112" width="28" height="28" fill="#e9dfc6"/>
+<rect x="140" y="112" width="28" height="28" fill="#e9dfc6"/>
+<rect x="168" y="112" width="28" height="28" fill="#e9dfc6"/>
+<rect x="196" y="112" width="28" height="28" fill="#e9dfc6"/>
+<rect x="224" y="112" width="28" height="28" fill="#e9dfc6"/>
+<rect x="252" y="112" width="28" height="28" fill="#e9dfc6"/>
+<rect x="140" y="140" width="28" height="28" fill="#7a5a36"/><text x="154" y="158" font-size="12" fill="#fff" text-anchor="middle">giriş</text>
+<text x="112.0" y="32.0" font-size="12" font-weight="700" fill="#111" stroke="#fff" stroke-width="3" paint-order="stroke" text-anchor="middle">Oda 1</text>
+<text x="196.0" y="32.0" font-size="12" font-weight="700" fill="#111" stroke="#fff" stroke-width="3" paint-order="stroke" text-anchor="middle">Oda 2</text>
+<text x="70.0" y="88.0" font-size="12" font-weight="700" fill="#111" stroke="#fff" stroke-width="3" paint-order="stroke" text-anchor="middle">Kapı A</text>
+<text x="154.0" y="88.0" font-size="12" font-weight="700" fill="#111" stroke="#fff" stroke-width="3" paint-order="stroke" text-anchor="middle">Kapı B</text>
+<text x="238.0" y="88.0" font-size="12" font-weight="700" fill="#111" stroke="#fff" stroke-width="3" paint-order="stroke" text-anchor="middle">Kapı C</text>
+</svg>

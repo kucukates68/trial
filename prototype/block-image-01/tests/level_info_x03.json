@@ -1,0 +1,105 @@
+{
+ "hand": [
+  [
+   "Sa\u011f \u00fcst",
+   "Sa\u011f orta",
+   "Sa\u011f alt"
+  ],
+  [
+   "Sol \u00fcst",
+   "Tepe",
+   "K\u00f6pr\u00fc"
+  ],
+  [
+   "Sol orta",
+   "Sol alt"
+  ]
+ ],
+ "win": [
+  1,
+  1,
+  1,
+  0,
+  0,
+  0,
+  2,
+  2
+ ],
+ "win_mixed": [
+  1,
+  1,
+  2,
+  1,
+  0,
+  2,
+  0,
+  0
+ ],
+ "win_reverse": [
+  2,
+  1,
+  1,
+  2,
+  1,
+  0,
+  0,
+  0
+ ],
+ "trap_seq": [
+  1,
+  0
+ ],
+ "stats": {
+  "solvable": true,
+  "p_random": 0.125,
+  "winning_orders": 28,
+  "decision_states": 9,
+  "free_states": 6,
+  "forced_states": 5,
+  "trap_instant": 8,
+  "trap_delayed": 1,
+  "n_states": 23
+ },
+ "fast": {
+  "solvable": true,
+  "orders": 28,
+  "start_safe": 3,
+  "start_moves": 3,
+  "start_win_moves": 2,
+  "start_closes": {
+   "0": [
+    1,
+    2
+   ],
+   "1": [
+    0
+   ],
+   "2": [
+    0
+   ]
+  },
+  "states": 23,
+  "infl": 1,
+  "fork": 1,
+  "delayed": 1,
+  "lagmin": 1,
+  "deep": 0,
+  "lags": [
+   1
+  ],
+  "surv_max": 2,
+  "deepsurv": 1,
+  "safe_win": 0.6666666666666666,
+  "midsurv": 1
+ },
+ "colors": {
+  "Tepe": "c_D",
+  "Sa\u011f \u00fcst": "c_K",
+  "Sol alt": "c_L",
+  "Sa\u011f alt": "c_R",
+  "K\u00f6pr\u00fc": "c_X",
+  "Sol \u00fcst": "c_k",
+  "Sol orta": "c_l",
+  "Sa\u011f orta": "c_r"
+ }
+}

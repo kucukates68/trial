@@ -1,0 +1,98 @@
+{
+ "hand": [
+  [
+   "\u00dcst \u00e7ubuk",
+   "Sa\u011f alt",
+   "Merkez alt"
+  ],
+  [
+   "Sa\u011f \u00fcst",
+   "Merkez \u00fcst"
+  ],
+  [
+   "Sol \u00fcst",
+   "Sol alt"
+  ]
+ ],
+ "win": [
+  0,
+  0,
+  0,
+  1,
+  1,
+  2,
+  2
+ ],
+ "win_mixed": [
+  0,
+  1,
+  2,
+  0,
+  1,
+  0,
+  2
+ ],
+ "win_reverse": [
+  2,
+  1,
+  0,
+  0,
+  1,
+  0,
+  2
+ ],
+ "trap_seq": [
+  2,
+  1,
+  1
+ ],
+ "stats": {
+  "solvable": true,
+  "p_random": 0.16358,
+  "winning_orders": 37,
+  "decision_states": 11,
+  "free_states": 8,
+  "forced_states": 2,
+  "trap_instant": 9,
+  "trap_delayed": 5,
+  "n_states": 26
+ },
+ "fast": {
+  "solvable": true,
+  "orders": 37,
+  "start_safe": 3,
+  "start_moves": 3,
+  "start_win_moves": 3,
+  "start_closes": {
+   "0": [],
+   "1": [],
+   "2": []
+  },
+  "states": 26,
+  "infl": 6,
+  "fork": 5,
+  "delayed": 5,
+  "lagmin": 1,
+  "deep": 1,
+  "lags": [
+   1,
+   1,
+   1,
+   1,
+   2
+  ],
+  "surv_max": 3,
+  "deepsurv": 3,
+  "safe_win": 0.5277777777777778,
+  "midsurv": 4
+ },
+ "colors": {
+  "Sol \u00fcst": "c_a",
+  "Sol alt": "c_b",
+  "Sa\u011f \u00fcst": "c_c",
+  "Sa\u011f alt": "c_d",
+  "Merkez \u00fcst": "c_m",
+  "Merkez alt": "c_n",
+  "\u00dcst \u00e7ubuk": "c_v"
+ }
+}
