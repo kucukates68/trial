@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Blok Resim 01</title>
+<style>/*__CSS__*/</style>
+</head>
+<body>
+<div id="app">
+  <header id="top">
+    <div class="brand">Blok Resim<small>01 · kedi</small></div>
+    <div id="pathPills" title="Yol görünümü"><button data-m="0">Kapalı</button><button data-m="A">İz</button><button data-m="B">Kritik</button></div>
+    <label>Hız <select id="speedSel"><option value="1">×1</option><option value="2">×2</option><option value="4">×4</option></select></label>
+    <button id="restartBtn" title="R">Yeniden başlat</button>
+    <button id="parityBtn">Parity</button>
+    <span id="progTxt"></span>
+  </header>
+  <main>
+    <section id="boardWrap"><canvas id="board"></canvas><div id="msg"></div></section>
+  </main>
+  <footer id="controls">
+    <div id="hand"></div>
+    <button id="sendBtn" title="Enter / Boşluk">Gönder</button>
+  </footer>
+</div>
+<div id="modal"><div class="box"><div id="modalBody"></div><p style="text-align:right"><button id="modalClose">Kapat</button></p></div></div>
+<script>/*__ENGINE__*/</script>
+<script>/*__LEVEL__*/</script>
+<script>/*__VECTORS__*/</script>
+<script>/*__UI__*/</script>
+</body>
+</html>
