@@ -6,7 +6,9 @@
   var LV = window.BI_LEVEL, VEC = window.BI_VECTORS || [], BI = window.BI, qs = new URLSearchParams(location.search);
   var $ = function (id) { return document.getElementById(id); };
   var L = new BI.Level(LV.grid, LV.pieces, LV.hand), PAL = LV.palette, CELLCOL = L.targets.map(function (t, i) { return PAL[LV.colors[i]]; });
-  var SLOTCOL = ['#ff9f1c', '#3b82f6', '#2fb67c'], PCOL = []; L.hand.forEach(function (q, sl) { q.forEach(function (pi) { PCOL[pi] = SLOTCOL[sl % SLOTCOL.length]; }); });
+  // KART RENGİ = bloğun resimdeki gerçek (baskın) hedef rengi; bloğun tüm hücreleri bu tek renkte çizilir. Slotla ilgisi YOK; renk bir kural değil, yalnız ayırt etmek içindir.
+  var PCOL = L.pieces.map(function (p) { var cnt = {}, best = null; p.cells.forEach(function (ti) { var k = LV.colors[ti]; cnt[k] = (cnt[k] || 0) + 1; }); var keys = Object.keys(cnt); if (qs.get('pcol') === 'accent') { var nb = keys.filter(function (k) { return PAL[k] !== '#4a2a1a'; }); if (nb.length) keys = nb; }   // ?pcol=accent: koyu çizgi rengini yok say (deneme seçeneği)
+    keys.forEach(function (k) { if (best === null || cnt[k] > cnt[best] || (cnt[k] === cnt[best] && +k < +best)) best = k; }); return PAL[best]; });
   var cfg = { speed: Math.max(0.5, Math.min(200, parseFloat(qs.get('speed')) || 1)), path: ['0', 'A', 'B'].indexOf((qs.get('path') || '').toUpperCase()) >= 0 ? qs.get('path').toUpperCase() : 'A' };
   var canvas = $('board'), ctx = canvas.getContext('2d');
   var G = { st: null, visual: null, status: 'idle', selected: -1, read: null, workers: [], pops: {}, history: [], waveEnd: 0, pending: null, wonAt: 0, sealedShown: [], sealedPath: null,
@@ -143,7 +145,7 @@
   function drawPieceTo(cv, pi, cell) {
     var cs = L.pieces[pi].cells.map(function (ti) { return L.targets[ti]; }), r0 = 1e9, c0 = 1e9, r1 = -1, c1 = -1; cs.forEach(function (t) { r0 = Math.min(r0, t.r); c0 = Math.min(c0, t.c); r1 = Math.max(r1, t.r); c1 = Math.max(c1, t.c); });
     var wpx = (c1 - c0 + 1) * cell, hpx = (r1 - r0 + 1) * cell, d = window.devicePixelRatio || 1; cv.style.width = wpx + 'px'; cv.style.height = hpx + 'px'; cv.width = Math.round(wpx * d); cv.height = Math.round(hpx * d);
-    var g = cv.getContext('2d'); g.setTransform(d, 0, 0, d, 0, 0); L.pieces[pi].cells.forEach(function (ti) { var t = L.targets[ti]; block(g, (t.c - c0) * cell, (t.r - r0) * cell, cell, PCOL[pi], 0); });
+    var g = cv.getContext('2d'); g.setTransform(d, 0, 0, d, 0, 0); L.pieces[pi].cells.forEach(function (ti) { var t = L.targets[ti]; block(g, (t.c - c0) * cell, (t.r - r0) * cell, cell, PCOL[pi], 0); g.strokeStyle = 'rgba(60,40,20,.28)'; g.lineWidth = 1; g.strokeRect((t.c - c0) * cell + 0.5, (t.r - r0) * cell + 0.5, cell - 1, cell - 1); });
   }
   function buildHand(seen, idle) {
     var hand = $('hand'), cards = L.cards(seen), opts = L.options(seen);

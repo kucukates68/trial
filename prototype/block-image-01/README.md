@@ -4,7 +4,7 @@ Bağımsız prototip (CAT96 / batch / piece kodundan türemedi). Tek dosya: **`d
 
 ## Görsel dil (rev. 2)
 - Resmin dışı yerleştirilebilir değil ve çizilmiyor (beyaz oyun tahtası kartı yok); yalnız resim alanı var, grid çizgisi/hücre aralığı yok.
-- **Kart rengi ≠ resim rengi:** kartlarda blok tek renk (slot başına sabit: turuncu / mavi / yeşil; aynı renk birçok blokta tekrar eder, renk bir kural değildir). Resim ise gerçek renklerinde oluşur.
+- **Kart rengi = bloğun resimdeki baskın hedef rengi** (rev. 3): bloğun tüm hücreleri o tek renkte; slotla ilgisi yok; renk bir kural değil. Dağılım: 13 blok kahverengi (çizgi), 5 açık turuncu, 5 krem, 1 turuncu, 1 koyu turuncu — kahverengi baskın. `?pcol=accent` koyu çizgi rengini yok sayıp ikinci baskın rengi kullanır (deneme).
 - **Seçince:** hedef, gerçek renklerin açık bir silüeti + kart renginde glow/çerçeve (tam renkle doldurulmaz); işçi izi ve taşınan kutular kart renginde; yerleşince bloklar gerçek resim rengine dönüşür.
 - Mekanik, motor, el/kuyruk, hedef, erişilebilirlik, solver ve parity değişmedi (16/16).
 
