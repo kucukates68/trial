@@ -25,6 +25,18 @@ const play = (p, s) => p.evaluate(sl => { CBGAME.select(sl); CBGAME.select(sl); 
   // renk: yerleşen hücre = resim rengi; parça modunda = parça kimlik rengi
   const px = await p.evaluate(() => { const art = CBGAME.hexToRgb(CBGAME.artColor(200)), p1 = CBGAME.cellPixel(200); return { art, p1 }; });
   ok(true, 'resim modunda hücre pikseli okunabiliyor ' + JSON.stringify(px.p1));
+  // FİZİKSEL BLOK denetimi: her hücre ayrı kutu — komşu iki hücre arasında boşluk, yüz = gerçek renk, üstte ışık, altta gölge
+  const bl = await p.evaluate(() => {
+    const L = CBGAME.level, g = CBGAME.geo(), T = L.targets, at = {}; T.forEach((t, i) => at[t.r + ',' + t.c] = i); let pick = null;
+    for (let i = 0; i < T.length && !pick; i++) { const t = T[i]; if (at[t.r + ',' + (t.c + 1)] !== undefined && at[(t.r + 1) + ',' + t.c] !== undefined && i > 150) pick = i; }
+    const t = T[pick], d = g.dpr, X = g.ox + t.c * g.s, Y = g.oy + t.r * g.s, cv = document.getElementById('board'), c2 = cv.getContext('2d'), px = (x, y) => Array.from(c2.getImageData(Math.round(x * d), Math.round(y * d), 1, 1).data);
+    const art = CBGAME.hexToRgb(CBGAME.artColor(pick)), face = px(X + g.s / 2, Y + g.s * 0.45), gapR = px(X + g.s, Y + g.s / 2), gapB = px(X + g.s / 2, Y + g.s), top = px(X + g.s / 2, Y + g.s * 0.12), bot = px(X + g.s / 2, Y + g.s * 0.86);
+    return { art, face, gapR, gapB, top, bot, s: g.s };
+  });
+  const lum = c => 0.3 * c[0] + 0.59 * c[1] + 0.11 * c[2];
+  ok(Math.abs(bl.face[0] - bl.art[0]) + Math.abs(bl.face[1] - bl.art[1]) + Math.abs(bl.face[2] - bl.art[2]) <= 12, 'blok yüzü hedef hücrenin gerçek kedi rengi ' + JSON.stringify(bl.face) + ' ≈ ' + JSON.stringify(bl.art));
+  ok(bl.gapR[3] < 255 && bl.gapB[3] < 255, 'komşu bloklar arasında boşluk var (sağ/alt) — düz yüzeye birleşmiyor');
+  ok(lum(bl.top) > lum(bl.face) + 6, 'üst yüzde ışık (üst kenar yüzden açık)'); ok(lum(bl.bot) < lum(bl.face) - 6, 'alt kenarda gölge (alt kenar yüzden koyu)');
   await p.evaluate(() => CBGAME.setColors('piece')); await p.waitForTimeout(150); ok(await p.evaluate(() => CBGAME.colorMode()) === 'piece', 'renk modu parçaya geçti'); await p.screenshot({ path: path.join(shots, 'l01_won_piece.png') });
   // tuzak: iki yanak sonrası alın → kulaklar kapanır (3. el)
   await p.evaluate(() => { CBGAME.setColors('art'); CBGAME.restart(); }); await idle(p);
