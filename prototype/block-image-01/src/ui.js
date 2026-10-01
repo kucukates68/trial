@@ -11,11 +11,15 @@
   var PCOL = LV.pieces.map(function (p) { if (!COLHEX[p.color]) throw new Error('piece.color eksik: ' + p.id); return COLHEX[p.color]; });
   var OWNER = new Int32Array(L.n); L.pieces.forEach(function (p) { p.cells.forEach(function (ti) { OWNER[ti] = p.i; }); });
   for (var ci = 0; ci < L.n; ci++) CELLCOL[ci] = PCOL[OWNER[ci]];   // targetColor[cell] = owningPiece.color  (kedi = 25 parçanın birleşmiş hâli)
-  var cfg = { speed: Math.max(0.5, Math.min(200, parseFloat(qs.get('speed')) || 1)), path: ['0', 'A', 'B'].indexOf((qs.get('path') || '').toUpperCase()) >= 0 ? qs.get('path').toUpperCase() : 'A' };
+  // RESİM RENGİ (yalnız art verisi olan seviyelerde, ör. L01): parçanın her hücresinin gerçek piksel-art rengi (piece.art). Kimlik rengi (piece.color) kartın/işçinin/önizleme çerçevesinin rengi olarak kalır.
+  var HAS_ART = !!(LV.pieces[0] && LV.pieces[0].art), ARTCOL = [];
+  if (HAS_ART) L.pieces.forEach(function (p, i) { p.cells.forEach(function (ti, k) { ARTCOL[ti] = LV.pieces[i].art[k]; }); });
+  var cfg = { colors: HAS_ART && qs.get('colors') !== 'piece' ? 'art' : 'piece', speed: Math.max(0.5, Math.min(200, parseFloat(qs.get('speed')) || 1)), path: ['0', 'A', 'B'].indexOf((qs.get('path') || '').toUpperCase()) >= 0 ? qs.get('path').toUpperCase() : 'A' };
   var canvas = $('board'), ctx = canvas.getContext('2d');
   var G = { st: null, visual: null, status: 'idle', selected: -1, read: null, workers: [], pops: {}, history: [], waveEnd: 0, pending: null, wonAt: 0, sealedShown: [], sealedPath: null,
             s: 10, ox: 0, oy: 0, dpr: 1, cw: 0, ch: 0, handSig: '', flash: null, sparks: [] };
   function now() { return performance.now() / 1000; }
+  function cellCol(ti) { return cfg.colors === 'art' ? ARTCOL[ti] : CELLCOL[ti]; }
 
   // ---------------------------------------------------------------- renk
   function rgb(h) { var n = parseInt(h.slice(1), 16); return [(n >> 16) & 255, (n >> 8) & 255, n & 255]; }
@@ -40,7 +44,7 @@
   function send(slot) {
     if (G.status !== 'idle') return; var res = L.place(G.st, slot); if (!res) { setMsg('Bu blok şu an yerleşemez.', 'bad'); return; }
     var t0 = now(), before = G.st; G.history.push({ slot: slot, before: before, piece: res.piece }); G.st = res.state; G.pending = { sealed: res.sealed, won: res.won, stuck: res.stuck }; G.dest = res.cells.slice();
-    var steps = res.steps, v = 48 * cfg.speed, gap = 0.03 / cfg.speed, tr = steps.map(function (s) { return Math.max(1, s.route.length - 1) / v; }), T0 = 0.05, i;
+    var steps = res.steps, v = (HAS_ART ? 64 : 48) * cfg.speed, gap = Math.min(0.03, 0.45 / Math.max(1, steps.length - 1)) / cfg.speed, tr = steps.map(function (s) { return Math.max(1, s.route.length - 1) / v; }), T0 = 0.05, i;
     for (i = 0; i < steps.length; i++) T0 = Math.max(T0, tr[i] - i * gap + 0.05);
     G.workers = steps.map(function (s, k) { return { ti: s.ti, path: s.route, depart: t0 + T0 + k * gap - tr[k], arrive: t0 + T0 + k * gap, travel: tr[k], state: 0, doneAt: 0, cargo: PCOL[res.piece] }; });
     G.waveEnd = t0 + T0 + (steps.length - 1) * gap + 0.22 / Math.sqrt(cfg.speed);
@@ -72,7 +76,8 @@
   function rrect(x, y, w, h, r) { ctx.beginPath(); ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r); ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath(); }
   function block(g, x, y, s, color, pop) {   // küçük renkli blok: ince aralık, üstte ışık, altta gölge
     var gap = 0, k = 1 + (pop || 0), sz = (s - gap) * k, px = x + (s - sz) / 2, py = y + (s - sz) / 2;
-    g.fillStyle = color; g.fillRect(px, py, sz, sz); g.fillStyle = 'rgba(255,255,255,.16)'; g.fillRect(px, py, sz, Math.max(1, sz * 0.12)); g.fillStyle = 'rgba(0,0,0,.10)'; g.fillRect(px, py + sz - Math.max(1, sz * 0.10), sz, Math.max(1, sz * 0.10));
+    g.fillStyle = color; g.fillRect(px, py, sz, sz); if (cfg.colors === 'art') return;   // piksel-art: düz hücre (ışık/gölge şeridi yok)
+    g.fillStyle = 'rgba(255,255,255,.16)'; g.fillRect(px, py, sz, Math.max(1, sz * 0.12)); g.fillStyle = 'rgba(0,0,0,.10)'; g.fillRect(px, py + sz - Math.max(1, sz * 0.10), sz, Math.max(1, sz * 0.10));
   }
   function edgePath(tis) {
     var set = {}, p = new Path2D(); tis.forEach(function (t) { set[t] = 1; });
@@ -122,7 +127,7 @@
     var preview = {}; if (G.read && G.status === 'idle') G.read.cells.forEach(function (ti) { preview[ti] = 1; });
     var sealedSet = {}; G.sealedShown.forEach(function (ti) { sealedSet[ti] = 1; });
     for (var ti = 0; ti < L.n; ti++) {
-      var tg = L.targets[ti], x = ox + tg.c * s, y = oy + tg.r * s, col = CELLCOL[ti];
+      var tg = L.targets[ti], x = ox + tg.c * s, y = oy + tg.r * s, col = cellCol(ti);
       if (G.visual[ti]) { var age = t - (G.pops[ti] || -9); block(ctx, x, y, s, col, age < 0.22 ? 0.4 * (1 - age / 0.22) : 0); }
       else { ctx.fillStyle = mix(col, '#ffffff', 0.66); ctx.fillRect(x, y, s, s); }   // soluk hayalet resim (düz küçük bloklar)
     }
@@ -130,7 +135,7 @@
     if (G.read && G.status === 'idle') {   // seçili bloğun hedefi
       var rd = G.read; if (!rd.edge) rd.edge = edgePath(rd.cells);
       var pc = PCOL[rd.piece];
-      rd.cells.forEach(function (ti2) { var tg2 = L.targets[ti2]; ctx.fillStyle = mix(CELLCOL[ti2], '#ffffff', 0.5); ctx.fillRect(ox + tg2.c * s, oy + tg2.r * s, s, s); });   // kedinin final rengi (= parça rengi) açık tonu; üstüne glow/çerçeve
+      rd.cells.forEach(function (ti2) { var tg2 = L.targets[ti2]; ctx.fillStyle = mix(cellCol(ti2), '#ffffff', 0.5); ctx.fillRect(ox + tg2.c * s, oy + tg2.r * s, s, s); });   // kedinin final rengi (= parça rengi) açık tonu; üstüne glow/çerçeve
       ctx.save(); ctx.translate(ox, oy); ctx.scale(s, s); ctx.lineJoin = 'miter'; ctx.shadowColor = pc; ctx.shadowBlur = s * (1.1 + 1.1 * pulse); ctx.strokeStyle = pc; ctx.lineWidth = 0.34; ctx.stroke(rd.edge); ctx.shadowBlur = 0; ctx.strokeStyle = '#fff'; ctx.lineWidth = 0.08; ctx.stroke(rd.edge); ctx.restore();
       if (cfg.path === 'B' && rd.cut.length) {   // kritik alan (geliştirici modu): yerleşince erişilemeyecek hücreler
         ctx.save(); ctx.fillStyle = 'rgba(255,170,30,' + (0.35 + 0.3 * pulse).toFixed(2) + ')'; rd.cut.forEach(function (ti3) { var tg3 = L.targets[ti3]; ctx.fillRect(ox + tg3.c * s, oy + tg3.r * s, s, s); }); ctx.restore();
@@ -151,12 +156,13 @@
   // ---------------------------------------------------------------- el / panel
   function drawPieceTo(cv, pi, cell) {
     var cs = L.pieces[pi].cells.map(function (ti) { return L.targets[ti]; }), r0 = 1e9, c0 = 1e9, r1 = -1, c1 = -1; cs.forEach(function (t) { r0 = Math.min(r0, t.r); c0 = Math.min(c0, t.c); r1 = Math.max(r1, t.r); c1 = Math.max(c1, t.c); });
+    if (HAS_ART) { var small = window.innerWidth < 720; cell = Math.max(3, Math.min(cell, Math.floor((small ? 88 : 116) / (c1 - c0 + 1)), Math.floor((small ? 60 : 84) / (r1 - r0 + 1)))); }   // büyük parçalar karta sığsın
     var wpx = (c1 - c0 + 1) * cell, hpx = (r1 - r0 + 1) * cell, d = window.devicePixelRatio || 1; cv.style.width = wpx + 'px'; cv.style.height = hpx + 'px'; cv.width = Math.round(wpx * d); cv.height = Math.round(hpx * d);
-    var g = cv.getContext('2d'); g.setTransform(d, 0, 0, d, 0, 0); g.fillStyle = PCOL[pi]; L.pieces[pi].cells.forEach(function (ti) { var t = L.targets[ti]; g.fillRect((t.c - c0) * cell, (t.r - r0) * cell, cell - 1, cell - 1); });   // TEK renk, düz
+    var g = cv.getContext('2d'); g.setTransform(d, 0, 0, d, 0, 0); var artMode = cfg.colors === 'art'; L.pieces[pi].cells.forEach(function (ti) { var t = L.targets[ti]; g.fillStyle = artMode ? ARTCOL[ti] : PCOL[pi]; g.fillRect((t.c - c0) * cell, (t.r - r0) * cell, artMode ? cell : cell - 1, artMode ? cell : cell - 1); });   // piece modu: TEK renk, düz · resim modu: gerçek pikseller
   }
   function buildHand(seen, idle) {
     var hand = $('hand'), cards = L.cards(seen), opts = L.options(seen);
-    var key = cards.map(function (c, i) { return c === null ? '-' : c + (opts[i] ? 'f' : 'x'); }).join(',') + '|' + G.selected + '|' + (idle ? 1 : 0); if (key === G.handSig) return; G.handSig = key; hand.innerHTML = '';
+    var key = cards.map(function (c, i) { return c === null ? '-' : c + (opts[i] ? 'f' : 'x'); }).join(',') + '|' + G.selected + '|' + (idle ? 1 : 0) + '|' + cfg.colors; if (key === G.handSig) return; G.handSig = key; hand.innerHTML = '';
     cards.forEach(function (c, slot) {
       var b = document.createElement('button'), cv = document.createElement('canvas'), pn = document.createElement('span'); pn.className = 'pn';
       if (c === null) {   // kuyruk bitti: slot görünür kalır (boş yuva), ama bekleyen parça varsa asla boş olmaz (L.audit denetler)
@@ -175,8 +181,10 @@
     $('progTxt').textContent = 'Resim %' + Math.round(100 * done / L.n) + ' · ' + G.history.length + ' / ' + LV.pieces.length + ' blok';
     buildHand(seen, idle); $('sendBtn').disabled = !(idle && G.selected >= 0);
     Array.prototype.forEach.call(document.querySelectorAll('#pathPills button'), function (b) { b.classList.toggle('on', b.dataset.m === cfg.path); });
+    Array.prototype.forEach.call(document.querySelectorAll('#colPills button'), function (b) { b.classList.toggle('on', b.dataset.c === cfg.colors); });
   }
   function setPath(m) { cfg.path = m; refresh(); }
+  function setColors(m) { if (!HAS_ART) return; cfg.colors = m === 'piece' ? 'piece' : 'art'; G.handSig = ''; refresh(); }
   function showModal(html) { $('modalBody').innerHTML = html; $('modal').classList.add('show'); }
   function runParity() {
     var ok = 0, total = 0, bad = [], rows = '';
@@ -193,6 +201,8 @@
     }
     draw(); requestAnimationFrame(frame);
   }
+  if (LV.title) { var bs = document.querySelector('.brand small'); if (bs) bs.textContent = LV.title; document.title = 'Blok Resim · ' + LV.title; }
+  if (HAS_ART) { $('colPills').style.display = 'flex'; Array.prototype.forEach.call(document.querySelectorAll('#colPills button'), function (b) { b.addEventListener('click', function () { setColors(b.dataset.c); }); }); }
   $('restartBtn').addEventListener('click', newGame); $('sendBtn').addEventListener('click', function () { if (G.selected >= 0) send(G.selected); }); $('parityBtn').addEventListener('click', runParity);
   $('modalClose').addEventListener('click', function () { $('modal').classList.remove('show'); });
   $('speedSel').addEventListener('change', function () { cfg.speed = parseFloat(this.value); });
@@ -216,7 +226,7 @@
     cardPixels: function (pi) { var cv = document.createElement('canvas'); drawPieceTo(cv, pi, 17); var d = cv.getContext('2d').getImageData(0, 0, cv.width, cv.height).data, set = {}; for (var i = 0; i < d.length; i += 4) if (d[i + 3] > 0) set[d[i] + ',' + d[i + 1] + ',' + d[i + 2] + ',' + d[i + 3]] = 1; return Object.keys(set); },
     cellPixel: function (ti) { var t = L.targets[ti], d = G.dpr, x = Math.round((G.ox + (t.c + 0.5) * G.s) * d), y = Math.round((G.oy + (t.r + 0.5) * G.s) * d), p = ctx.getImageData(x, y, 1, 1).data; return [p[0], p[1], p[2]]; },
     workerCargo: function () { return G.workers.map(function (w) { return w.cargo; }); }, hexToRgb: rgb,
-    handDiag: handDiag, restart: newGame, setPath: setPath, runParity: runParity, level: L, info: LV
+    handDiag: handDiag, setColors: setColors, artColor: function (ti) { return ARTCOL[ti]; }, colorMode: function () { return cfg.colors; }, restart: newGame, setPath: setPath, runParity: runParity, level: L, info: LV
   };
   layout(); newGame(); requestAnimationFrame(frame);
 })();

@@ -45,3 +45,12 @@ GÖR (3 blok) → SEÇ (kart: hedef bloğu resimde belirir; göndermez) → GÖN
 - **Düzeltme (yalnız seviye verisi: kuyruk dağılımı; mekanik/sanat/geometri/renk aynı):** `tools/safe_hand.json` (çözücüyle seçildi: gecikmeli tuzak 0, 427 durum, karar durumu 164). Kuyruk uzunlukları 8/9/8.
 - **UI:** boş slot artık görünür yuva ("kuyruk bitti"); yerleşemeyen kart gizlenmez, soluk + "yol kapalı" + basınca açıklama; çıkmaz uyarısı (`L.diagnose`); `CBGAME.handDiag()` + `console.debug('[el]')` kuyruk/işaretçi/el kaydı.
 - **QA:** `node tests/qa_hand.js` (eski düzende FAIL, yenide PASS).
+
+## Rev. 8 — L01: 36×24 piksel-art kedi (oynanabilir)
+- **Dosya:** `dist/block-image-L01.html` (`python3 tools/build.py l01`); cat-02 (`dist/block-image-01.html`) aynen duruyor. Mekanik (engine.js) değişmedi.
+- **Veri:** 36×24, **460 hücre, 19 parça** (kafa/alın 64 · haunch 50 · çene/bel gate'i 36 · göğüs 36 · kuyruk 35 · … · gözler 9 · burun+ağız 8), giriş (x18, y24), kuyruklar **ALT-2**:
+  A: FACE_L FACE_R FOREHEAD MUZZLE JAW CHEST BELLY · B: EAR_L EARIN_L EYE_L NOSE_MOUTH HAUNCH PAW_L · C: EAR_R EARIN_R EYE_R TAIL PAW_R FLANK_R.
+  Kaynak: `tools/l01_source.json` (hücre→parça, piksel-art rengi, kimlik rengi, kuyruklar) → `python3 tools/make_l01.py` → `src/level_l01.js`, `src/vectors_l01.js`, `tests/vectors_l01.json`, `tests/level_info_l01.json` (Python referansıyla kesin çözücü: winning_orders 6 172 752, rastgele kazanma %27,9, gecikmeli tuzak 0, ilk anlık tuzak 3. el).
+- **Görünüm:** küçük hücreler; yerleşen hücreler **resmin gerçek piksel renginde** (varsayılan, `?colors=art`), kartlar parçanın gerçek piksel parçası; kimlik rengi (`piece.color`) işçi yükü ve önizleme çerçevesinde. Başlıkta **Resim / Parça** düğmesi (`?colors=piece`: eski tek-renk parça görünümü). Büyük parçalarda işçi dalgası kısaltıldı (≤0,45 sn dağılım), hız 64 hücre/sn.
+- **QA:** `node tests/parity.js tests/vectors_l01.json` (19/19, rota imzaları dahil) · `node tests/qa_hand.js ../src/level_l01.js level_info_l01.json` (19/19 muhasebe, çıkmaz/kazanılamaz durum 0) · `node tests/qa_l01.js` (tarayıcı: 19 hamlede önizleme=yerleşim, kazanma, 3. elde FOREHEAD tuzağı → sealed, renk modu, telefon taşması, süre, console).
+- **Henüz yok (bilerek):** sıradaki kart önizlemesi (L03+ için onaylı), yeni level, yeni mekanik.

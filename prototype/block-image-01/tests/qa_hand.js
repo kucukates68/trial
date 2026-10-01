@@ -1,6 +1,6 @@
-// node tests/qa_hand.js → EL / KUYRUK tutarlılığı + yasal seçenek denetimi + çözücü↔UI (motor) eşleşmesi
-global.self = global; const BI = require('../src/engine.js'), fs = require('fs'); const info = JSON.parse(fs.readFileSync(__dirname + '/level_info.json'));
-global.window = {}; eval(fs.readFileSync(__dirname + '/../src/level.js', 'utf8')); const LV = window.BI_LEVEL, L = new BI.Level(LV.grid, LV.pieces, LV.hand);
+// node tests/qa_hand.js [level.js] [level_info.json] → EL / KUYRUK tutarlılığı + yasal seçenek denetimi + çözücü↔UI (motor) eşleşmesi
+global.self = global; const BI = require('../src/engine.js'), fs = require('fs'); const LVF = process.argv[2] || '../src/level.js', INF = process.argv[3] || 'level_info.json', info = JSON.parse(fs.readFileSync(require('path').resolve(__dirname, INF)));
+global.window = {}; eval(fs.readFileSync(require('path').resolve(__dirname, LVF), 'utf8')); const LV = window.BI_LEVEL, L = new BI.Level(LV.grid, LV.pieces, LV.hand);
 const N = LV.pieces.length, res = []; const rep = (name, ok, extra) => { res.push(ok); console.log((ok ? 'PASS ' : 'FAIL ') + name + (extra ? '  — ' + extra : '')); };
 const key = st => Buffer.from(st.filled).toString('hex') + '|' + st.ptr.join(',');
 // 1) bütün ulaşılabilir durumlar (her yasal hamle): muhasebe + el=kuyruk başı + çıkmaz taraması
@@ -17,7 +17,7 @@ function rec(st) {
   return w;
 }
 const rootWin = rec(L.newState());
-rep('25/25 piece accounting', auditBad.length === 0 && audits > 100, audits + ' ulaşılabilir durumda kalan = ' + N + ' − gönderilen; her parça tam 1 kuyrukta/elde');
+rep(N + '/' + N + ' piece accounting', auditBad.length === 0 && audits > 100, audits + ' ulaşılabilir durumda kalan = ' + N + ' − gönderilen; her parça tam 1 kuyrukta/elde');
 const ids = LV.hand.flat(); rep('no missing piece', new Set(ids).size === N && LV.pieces.every(p => ids.includes(p.id)), ids.length + ' kuyruk girişi / ' + N + ' parça');
 rep('no duplicate piece', ids.length === new Set(ids).size);
 rep('hand/queue consistency', auditBad.length === 0 && emptyWithQueue === 0, 'el = kuyruk başı; slot yalnız kuyruğu bitince boş (' + emptyWithQueue + ' ihlal)');
@@ -32,5 +32,5 @@ for (const name of ['win', 'win_mixed']) {
     const r = L.place(st, slot); st = r.state; if (r.won) won = true; if (r.sealed.length || r.stuck) okSeq = false;
   }); if (!won) okSeq = false;
 }
-rep('solver/UI parity', okSeq && JSON.stringify(info.hand) === JSON.stringify(LV.hand), 'kazanan diziler (win, win_mixed) 25 adımda el=kuyruk başı, yasal, kazanır ' + detail.join(','));
+rep('solver/UI parity', okSeq && JSON.stringify(info.hand) === JSON.stringify(LV.hand), 'kazanan diziler (win, win_mixed) ' + N + ' adımda el=kuyruk başı, yasal, kazanır ' + detail.join(','));
 console.log(res.every(Boolean) ? 'HEPSİ GEÇTİ' : 'BAŞARISIZ'); process.exit(res.every(Boolean) ? 0 : 1);
