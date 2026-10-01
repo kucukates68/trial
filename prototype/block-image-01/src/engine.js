@@ -58,6 +58,30 @@
   };
   Level.prototype.remaining = function (st) { var s = 0; this.hand.forEach(function (q, i) { s += q.length - st.ptr[i]; }); return s; };
   function routeSig(steps) { var m = 1000000007, h = 0; steps.forEach(function (s) { var a = 0; s.route.forEach(function (c, i) { a = (a + c * (i + 1)) % m; }); h = (h * 31 + a + s.route.length) % m; }); return h; }
+  /* EL / KUYRUK MUHASEBESİ: her parça tam bir kez ya gönderilmiş (kuyruk önekinde) ya bekliyor (kuyruk sonekinde); el kartı = kuyruk başı. */
+  Level.prototype.audit = function (st) {
+    var self = this, err = [], seen = {}, sent = 0, rem = 0, nP = this.pieces.length, sentSet = {};
+    this.hand.forEach(function (q, s) {
+      if (st.ptr[s] < 0 || st.ptr[s] > q.length) err.push('slot ' + s + ': işaretçi aralık dışı');
+      q.forEach(function (p, k) { if (seen[p]) err.push('çift: ' + self.pieces[p].id); seen[p] = 1; if (k < st.ptr[s]) { sent++; sentSet[p] = 1; } else rem++; });
+    });
+    if (Object.keys(seen).length !== nP) err.push('kayıp parça: kuyruklarda ' + Object.keys(seen).length + ' / ' + nP);
+    if (sent + rem !== nP || rem !== nP - sent) err.push('muhasebe: gönderilen ' + sent + ' + kalan ' + rem + ' ≠ ' + nP);
+    this.cards(st).forEach(function (c, s) { var q = self.hand[s]; if (c === null ? st.ptr[s] < q.length : c !== q[st.ptr[s]]) err.push('slot ' + s + ': el kartı kuyruk başı değil'); });
+    this.pieces.forEach(function (p) { p.cells.forEach(function (ti) { if (!!st.filled[ti] !== !!sentSet[p.i]) err.push(p.id + ': hücre durumu gönderim durumuyla uyuşmuyor'); }); });
+    return { ok: !err.length, errors: err, sent: sent, remaining: rem, total: nP, ids: this.cards(st).map(function (c) { return c === null ? null : self.pieces[c].id; }) };
+  };
+  /* Her slot için neden/ne olur: empty (kuyruk bitti) · blocked (yol kapalı) · seals/stuck (gönderirsen kaybedersin) · ok (devam edilebilir) · won. deadlock = hiçbir kart devam ettirmiyor. */
+  Level.prototype.diagnose = function (st) {
+    var self = this, opts = this.options(st), won = this.filledCount(st.filled) === this.n;
+    var slots = this.cards(st).map(function (c, s) {
+      if (c === null) return { slot: s, piece: null, state: 'empty' };
+      if (!opts[s]) return { slot: s, piece: self.pieces[c].id, state: 'blocked' };
+      var r = self.place(st, s); return { slot: s, piece: self.pieces[c].id, state: r.won ? 'won' : r.sealed.length ? 'seals' : r.stuck ? 'stuck' : 'ok' };
+    });
+    var cont = slots.filter(function (x) { return x.state === 'ok' || x.state === 'won'; }).length;
+    return { slots: slots, continuable: cont, deadlock: !won && cont === 0 };
+  };
   Level.prototype.simulate = function (seq) {
     var st = this.newState(), out = [], self = this;
     for (var k = 0; k < seq.length; k++) {

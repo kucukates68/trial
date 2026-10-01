@@ -51,7 +51,12 @@
     if (p.won) { G.status = 'won'; G.wonAt = now(); setMsg('Resim tamamlandı! ' + G.history.length + ' blok gönderdin.', 'good'); }
     else if (p.sealed.length) { G.status = 'sealed'; G.sealedShown = p.sealed; G.sealedPath = null; setMsg('Kilitlendi: resmin bir bölümüne artık girişten yol yok (turuncu). Yeniden başlat.', 'bad'); }
     else if (p.stuck) { G.status = 'stuck'; setMsg('Sıkıştı: elindeki bloklardan hiçbirine yol yok. Yeniden başlat.', 'bad'); }
-    else { G.status = 'idle'; setMsg('Sıradaki blok? Bir karta bas: hedefi görünür.'); }
+    else {
+      G.status = 'idle'; var dg = L.diagnose(G.st);
+      if (dg.deadlock) setMsg('Çıkmaz: elindeki hiçbir blok oyunu sürdüremiyor (kartlar duruyor, hepsi resmi kapatıyor). Yeniden başlat.', 'bad');
+      else setMsg('Sıradaki blok? Bir karta bas: hedefi görünür.');
+    }
+    if (window.console && console.debug) console.debug('[el]', JSON.stringify(handDiag()));
     refresh();
   }
   function undoNone() {}
@@ -153,13 +158,18 @@
     var hand = $('hand'), cards = L.cards(seen), opts = L.options(seen);
     var key = cards.map(function (c, i) { return c === null ? '-' : c + (opts[i] ? 'f' : 'x'); }).join(',') + '|' + G.selected + '|' + (idle ? 1 : 0); if (key === G.handSig) return; G.handSig = key; hand.innerHTML = '';
     cards.forEach(function (c, slot) {
-      if (c === null) return; var b = document.createElement('button'), cv = document.createElement('canvas'), ok = !!opts[slot];
-      b.className = 'card' + (G.selected === slot ? ' sel' : '') + (ok ? '' : ' nofit'); b.id = 'slot' + slot; b.dataset.slot = slot; b.dataset.piece = L.pieces[c].id; b.disabled = !idle || !ok; b.title = 'Blok ' + (slot + 1); b.style.borderColor = G.selected === slot ? PCOL[c] : ''; if (G.selected === slot) b.style.boxShadow = '0 0 0 3px ' + PCOL[c] + '44, 0 2px 0 ' + PCOL[c];
-      drawPieceTo(cv, c, window.innerWidth < 720 ? 13 : 17); b.appendChild(cv); var pn = document.createElement('span'); pn.className = 'pn'; pn.textContent = String(slot + 1) + (ok ? '' : ' · yol kapalı'); b.appendChild(pn);
+      var b = document.createElement('button'), cv = document.createElement('canvas'), pn = document.createElement('span'); pn.className = 'pn';
+      if (c === null) {   // kuyruk bitti: slot görünür kalır (boş yuva), ama bekleyen parça varsa asla boş olmaz (L.audit denetler)
+        b.className = 'card empty'; b.id = 'slot' + slot; b.dataset.slot = slot; b.dataset.piece = ''; b.disabled = true; b.title = 'Blok ' + (slot + 1) + ' — kuyruk bitti'; pn.textContent = String(slot + 1) + ' · kuyruk bitti'; b.appendChild(pn); hand.appendChild(b); return;
+      }
+      var ok = !!opts[slot];   // yerleşemeyen kart GİZLENMEZ: soluk görünür, nedeni yazılır, basınca açıklama çıkar
+      b.className = 'card' + (G.selected === slot ? ' sel' : '') + (ok ? '' : ' nofit'); b.id = 'slot' + slot; b.dataset.slot = slot; b.dataset.piece = L.pieces[c].id; b.disabled = !idle; b.title = 'Blok ' + (slot + 1); b.style.borderColor = G.selected === slot ? PCOL[c] : ''; if (G.selected === slot) b.style.boxShadow = '0 0 0 3px ' + PCOL[c] + '44, 0 2px 0 ' + PCOL[c];
+      drawPieceTo(cv, c, window.innerWidth < 720 ? 13 : 17); b.appendChild(cv); pn.textContent = String(slot + 1) + (ok ? '' : ' · yol kapalı'); b.appendChild(pn);
       b.addEventListener('click', function () { select(slot); }); hand.appendChild(b);
     });
-    if (!hand.children.length) hand.innerHTML = '<span style="color:#9a8a72">blok kalmadı</span>';
+    if (cards.every(function (c) { return c === null; })) { var n = document.createElement('span'); n.style.color = '#9a8a72'; n.textContent = 'blok kalmadı'; hand.appendChild(n); }
   }
+  function handDiag() { var d = L.diagnose(G.st), a = L.audit(G.st); return { ptr: G.st.ptr.slice(), queues: L.hand.map(function (q) { return q.map(function (p) { return L.pieces[p].id; }); }), hand: a.ids, slots: d.slots, continuable: d.continuable, deadlock: d.deadlock, audit: a }; }
   function refresh() {
     var seen = G.status === 'anim' ? { filled: G.visual, ptr: (G.history.length && G.history[G.history.length - 1].before.ptr) || G.st.ptr } : G.st, done = L.filledCount(seen.filled), idle = G.status === 'idle';
     $('progTxt').textContent = 'Resim %' + Math.round(100 * done / L.n) + ' · ' + G.history.length + ' / ' + LV.pieces.length + ' blok';
@@ -206,7 +216,7 @@
     cardPixels: function (pi) { var cv = document.createElement('canvas'); drawPieceTo(cv, pi, 17); var d = cv.getContext('2d').getImageData(0, 0, cv.width, cv.height).data, set = {}; for (var i = 0; i < d.length; i += 4) if (d[i + 3] > 0) set[d[i] + ',' + d[i + 1] + ',' + d[i + 2] + ',' + d[i + 3]] = 1; return Object.keys(set); },
     cellPixel: function (ti) { var t = L.targets[ti], d = G.dpr, x = Math.round((G.ox + (t.c + 0.5) * G.s) * d), y = Math.round((G.oy + (t.r + 0.5) * G.s) * d), p = ctx.getImageData(x, y, 1, 1).data; return [p[0], p[1], p[2]]; },
     workerCargo: function () { return G.workers.map(function (w) { return w.cargo; }); }, hexToRgb: rgb,
-    restart: newGame, setPath: setPath, runParity: runParity, level: L, info: LV
+    handDiag: handDiag, restart: newGame, setPath: setPath, runParity: runParity, level: L, info: LV
   };
   layout(); newGame(); requestAnimationFrame(frame);
 })();

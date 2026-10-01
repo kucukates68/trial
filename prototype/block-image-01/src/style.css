@@ -18,7 +18,7 @@ footer#controls { display:flex; gap:12px; justify-content:center; align-items:st
 #hand { display:flex; gap:12px; justify-content:center; }
 .card { background:var(--card); border:2px solid var(--line); border-radius:16px; padding:8px 10px 6px; display:flex; flex-direction:column; align-items:center; justify-content:center; min-width:104px; min-height:104px; box-shadow:0 2px 0 var(--line); }
 .card.sel { transform:translateY(-3px); background:#fffdf8; }
-.card.nofit { opacity:.45; } .card canvas { display:block; } .card .pn { font-size:10px; color:var(--mute); margin-top:3px; }
+.card.nofit { opacity:.45; } .card.empty { opacity:.5; border-style:dashed; background:transparent; box-shadow:none; } .card canvas { display:block; } .card .pn { font-size:10px; color:var(--mute); margin-top:3px; }
 #sendBtn { background:var(--acc); color:#fff; border:0; border-radius:16px; font-weight:800; font-size:16px; padding:0 22px; box-shadow:0 3px 0 #d9830c; }
 #sendBtn:disabled { background:#ddd0b6; box-shadow:0 3px 0 #c9bb9d; }
 #modal { position:fixed; inset:0; background:#0006; display:none; align-items:center; justify-content:center; z-index:9; } #modal.show { display:flex; }

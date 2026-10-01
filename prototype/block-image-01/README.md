@@ -39,3 +39,9 @@ GÖR (3 blok) → SEÇ (kart: hedef bloğu resimde belirir; göndermez) → GÖN
 - Resim 20×20'lik bir indirgeme; kedi okunuyor ama küçük detaylar (ağız, bıyık) yok. Blok sınırları rastgele-ama-sabit bölme sonucu, elle çizilmedi.
 - Blok boyları 5–10 hücre (istenen 3–6 aralığına sığmıyor: 25 yerleştirme × 3–6 hücre ≈ 100–150 hücre eder; 188 hücreli resim için 5–10 seçildi).
 - İlk el güvenli; ilk gerçek tuzak ≈ 6. adımda belirir.
+
+## Rev. 7 — EL / KUYRUK hata düzeltmesi
+- **Bulgu:** 19/25 durumunda `ptr=(7,8,4)`: 2. slotun kuyruğu (8 parça) bitmişti → kart *kaybolmadı*, kuyruk tükenmişti (turuncu parça önceden gönderilmişti). Kalan 6 parça yalnız 1. ve 3. kuyrukta; ikisi de gönderilince resmi kapatıyordu. Eski `blocks2` kuyruk düzeninde 4 "gecikmeli tuzak" (önceki hamle bayraksız, sonraki durum kazanılamaz) vardı.
+- **Düzeltme (yalnız seviye verisi: kuyruk dağılımı; mekanik/sanat/geometri/renk aynı):** `tools/safe_hand.json` (çözücüyle seçildi: gecikmeli tuzak 0, 427 durum, karar durumu 164). Kuyruk uzunlukları 8/9/8.
+- **UI:** boş slot artık görünür yuva ("kuyruk bitti"); yerleşemeyen kart gizlenmez, soluk + "yol kapalı" + basınca açıklama; çıkmaz uyarısı (`L.diagnose`); `CBGAME.handDiag()` + `console.debug('[el]')` kuyruk/işaretçi/el kaydı.
+- **QA:** `node tests/qa_hand.js` (eski düzende FAIL, yenide PASS).

@@ -73,6 +73,9 @@ def patterns(order):
     P['blocks2'] = [sorted([order[i] for i in range(len(order)) if (i // 2) % 3 == k], key=lambda ch: rank[ch]) for k in range(3)]
     P['thirds'] = [order[0:8], order[8:16], order[16:]]
     P['blocks3'] = [sorted([order[i] for i in range(len(order)) if (i // 3) % 3 == k], key=lambda ch: rank[ch]) for k in range(3)]
+    sf = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'safe_hand.json')
+    if os.path.exists(sf):   # elle seçilmiş EL/KUYRUK: çözücüyle doğrulanmış, hiçbir ulaşılabilir durumda gecikmeli tuzak (kimse kazanamaz durumu) yok
+        inv = {v: k for k, v in ID.items()}; P['safe'] = [[inv[i] for i in q] for q in json.load(open(sf))]
     return P
 
 def colour(hand_ch, memo, Lv):
@@ -110,8 +113,11 @@ if __name__ == '__main__':
     tmp_pieces = [dict(id=ID[ch], cells=[list(p) for p in pieces_cells[ch]]) for ch in letters]; ix = {ch: i for i, ch in enumerate(letters)}
     for name, qs in pats.items():
         hand = [[ID[ch] for ch in q] for q in qs]; Lv = Level(GRID, tmp_pieces, hand); s = Lv.stats(); res[name] = (s, qs, hand); print(name, [len(q) for q in qs], json.dumps(s))
-    pick = sys.argv[1] if len(sys.argv) > 1 else 'blocks2'; s, qs, hand = res[pick]; Lv = Level(GRID, tmp_pieces, hand); memo, root = Lv.analyse(); assert root[0], 'çözülemez'
-    sc, cseed, col = colour(qs, memo, Lv); pieces = build_pieces(col)
+    pick = sys.argv[1] if len(sys.argv) > 1 else ('safe' if 'safe' in pats else 'blocks2'); s, qs, hand = res[pick]; Lv = Level(GRID, tmp_pieces, hand); memo, root = Lv.analyse(); assert root[0], 'çözülemez'
+    if pick == 'safe':   # renk/sanat değişmez: mevcut piece.color korunur
+        old = json.load(open(os.path.join(H, '..', 'tests', 'level_info.json')))['colors']; col = {ch: old[ID[ch]] for ch in letters}; sc, cseed = 0.0, -1
+    else: sc, cseed, col = colour(qs, memo, Lv)
+    pieces = build_pieces(col)
     print('renkler:', {c: sum(1 for p in pieces if p['color'] == c) for c in COLORS + ['dark']}, 'ortalama farklı-renk oranı', round(sc, 3), 'tohum', cseed)
     L = Level(GRID, pieces, hand)
     def walk(prefer):
