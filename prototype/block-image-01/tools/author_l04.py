@@ -28,9 +28,10 @@ for tag, cx in (('R', 9.5), ('F', 26.5)):
     tire = ring(-1, 4.4); cv.piece('TIRE_%s_TOP' % tag, 'tire', [p for p in tire if p[1] < 19]); cv.piece('TIRE_%s_BOT' % tag, 'tire_b', [p for p in tire if p[1] >= 19]); cv.piece('RIM_' + tag, 'rim', ring(-1, 2.8)); cv.piece('HUB_' + tag, 'hub', ring(-1, 1.3))
 moved = repair(cv)
 shade(cv, ['TRUNK', 'DECK_L', 'DECK_R', 'HOOD', 'REAR_UP', 'REAR_LOW', 'FRONT_UP', 'FRONT_LOW', 'DOOR_1', 'DOOR_2'], ['body_a', 'body_b', 'body_c'])
+HAND = [['PILLAR_L', 'TAILLIGHT', 'BUMPER_R', 'WIN_REAR', 'REAR_LOW', 'REAR_UP', 'HUB_R', 'RIM_R', 'TIRE_R_TOP', 'TIRE_R_BOT', 'UNDER_L', 'TRUNK'], ['HEADLIGHT', 'PILLAR_R', 'BUMPER_F', 'FRONT_LOW', 'WIN_FRONT', 'FRONT_UP', 'HUB_F', 'RIM_F', 'TIRE_F_TOP', 'TIRE_F_BOT', 'UNDER_R', 'HOOD'], ['ROOF_L', 'ROOF_R', 'PILLAR_B', 'PILLAR_C', 'SILL_L', 'WIN_MID', 'SILL_R', 'HANDLE_2', 'HANDLE_1', 'DOOR_1', 'DECK_L', 'DECK_R', 'DOOR_2', 'UNDER_C']]
 def build(hand=None):
     errs, adj = validate(cv); same = sorted({(a, b) for a in adj for b in adj[a] if a < b and HEX[cv.color[a]] == HEX[cv.color[b]]})
     return dict(id='L04', name='L04 — Araba', title='L04 · araba 36×24', w=36, h=24, entrance=[24, 18], floor=[list(f) for f in sorted(cv.floor)], pieces=cv.finalize(), colorHex=HEX, style='blocks', hand=hand, pattern='manuel'), errs, same
 if __name__ == '__main__':
-    src, errs, same = build(); print('repair', moved, stats_line(cv), errs, 'aynı-renk komşu:', same)
+    src, errs, same = build(HAND); print('repair', moved, stats_line(cv), errs, 'aynı-renk komşu:', same)
     json.dump(src, open('l04_source.json', 'w'), separators=(',', ':'))

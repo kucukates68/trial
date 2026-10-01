@@ -35,9 +35,10 @@ cv.rect('LEAF_L1', 'leaf_a', 3, 20, 6, 21); cv.rect('LEAF_L2', 'leaf_b', 7, 20, 
 cv.piece('BERRY_1', 'berry', [(5, 19), (6, 19)]); cv.piece('BERRY_2', 'berry', [(30, 19), (31, 19)])
 moved = repair(cv)
 shade(cv, [n for n in cv.order if n.startswith('BODY_') and cv.color[n] in BB], BB); shade(cv, [n for n in cv.order if n.startswith('BODY_') and cv.color[n] in BC], BC); shade(cv, [n for n in cv.order if n.startswith('HEAD_')], ['head_a', 'head_b', 'head_c'])
+HAND = [['CREST_1', 'BEAK_UP', 'BEAK_LOW', 'CREST_2', 'CREST_3', 'HEAD_1', 'HEAD_2', 'EYE_HI', 'EYE', 'CHEEK', 'HEAD_3', 'HEAD_4'], ['TAIL_A', 'TAIL_B', 'TAIL_C', 'BODY_01', 'BODY_04', 'BODY_03', 'BODY_05', 'BODY_02', 'BODY_10', 'WING_TIP_3', 'BODY_06', 'WING_TIP_1', 'BODY_09', 'BODY_07', 'WING_TOP', 'WING_MID', 'WING_TIP_2', 'BODY_08'], ['BERRY_1', 'BERRY_2', 'LEAF_L1', 'LEAF_R2', 'LEAF_L2', 'LEAF_R1', 'BRANCH_L', 'LEG_L', 'BRANCH_R', 'FOOT_L', 'LEG_R', 'FOOT_R', 'BRANCH_C']]
 def build(hand=None):
     errs, adj = validate(cv); same = sorted({(a, b) for a in adj for b in adj[a] if a < b and HEX[cv.color[a]] == HEX[cv.color[b]]})
     return dict(id='L05', name='L05 — Kuş', title='L05 · kuş 36×24', w=36, h=24, entrance=[24, 18], floor=[], pieces=cv.finalize(), colorHex=HEX, style='blocks', hand=hand, pattern='manuel'), errs, same
 if __name__ == '__main__':
-    src, errs, same = build(); print('repair', moved, stats_line(cv), errs, 'aynı-renk komşu:', same)
+    src, errs, same = build(HAND); print('repair', moved, stats_line(cv), errs, 'aynı-renk komşu:', same)
     json.dump(src, open('l05_source.json', 'w'), separators=(',', ':'))
