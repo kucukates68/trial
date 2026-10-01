@@ -30,13 +30,13 @@
       <table id="stock"></table>
       <div id="msg" class="info"></div>
       <div id="selBox"><canvas id="selShape"></canvas><div id="selInfo" class="meta"></div></div>
-      <div class="meta">Gönderilen parçalar:</div><div id="history"></div>
+      <div class="meta">Yollanan gönderiler:</div><div id="history"></div>
       <details id="rules" open><summary>Nasıl oynanır</summary><ul>
-        <li>Elinde hep <b>3 parça</b> var: resmin bir bölgesi. Sen yalnız hangisini göndereceğini seçersin.</li>
-        <li>Bir karta bas: o bölge resmin üzerinde <b>parlar</b> ve hedefi görünür. Göndermez; üçüne de bakıp karşılaştırabilirsin.</li>
-        <li>Işık noktaları işçilerin <b>gerçek rotasıdır</b>. Turuncu parlama: bu bölge yerleşince oraya giden yol kapanır.</li>
-        <li><b>Gönder</b>: işçiler bölgeyi inşa eder; biten bölge <b>kalıcı engel</b> olur. Gönderilen kartın yerine yalnız o slotun sıradaki parçası gelir.</li>
-        <li>Bir bölgeye giden yol kapanırsa seviye <b>kaybedilir</b>. Tüm bölgeler dolunca resim tamamlanır.</li></ul></details>
+        <li>Elinde hep <b>3 gönderi</b> (📦 + pixel sayısı) var. Bir gönderi, resmin bir bölgesine yollanacak <b>pixel kutuları</b> demek; şekil yok.</li>
+        <li>Bir karta bas: o gönderinin dolduracağı pikseller resmin üzerinde <b>parlar</b>, ışık noktaları işçilerin <b>gerçek rotasını</b> gösterir. Göndermez; üçüne de bakıp karşılaştırabilirsin.</li>
+        <li><b>Gönder</b>: her işçi <b>tek bir</b> pixel kutusu taşır; her pixel ayrı yerleşir ve <b>kalıcı engel</b> olur. Sonraki işçinin yolu güncel tahtaya göre yeniden hesaplanır.</li>
+        <li>Gönderilen kartın yerine yalnız o slotun sıradaki gönderisi gelir.</li>
+        <li>Bir boş piksele giden yol kapanırsa ya da hiçbir gönderi yerleşemezse seviye <b>kaybedilir</b>. Tüm pikseller dolunca resim tamamlanır.</li></ul></details>
       <details id="dev"><summary>Geliştirici / araştırma bilgisi</summary><div id="devInfo" class="meta"></div></details>
     </aside>
   </main>

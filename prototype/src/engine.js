@@ -234,5 +234,88 @@
     return out;
   };
 
-  return { Level: Level, PLevel: PLevel, DIRS: DIRS };
+  /* ===================================================================================================
+   * GÖNDERİ (BATCH / DISPATCH) MEKANİĞİ — CAT96'nın güncel çekirdeği.  Python referansı: prototype/tools/batch_ref.py
+   *   • Hedef resim = binlerce hücre (piksel). Zemin (görünmez) + giriş + BOŞ hedef hücreler yürünebilir; dolu hücre kalıcı engel.
+   *   • Oyuncunun elinde 3 slot var; her slotun elle yazılmış sabit kuyruğu: [[bölge, adet], ...]. Kart = bir GÖNDERİ (adet k).
+   *     Gönderilen kartın yerine yalnız o slotun sıradaki gönderisi gelir. Oyuncu şekil/konum seçmez; yalnız hangi gönderiyi yollayacağını.
+   *   • chooseBatch(filled, bölge, k) — ilk prototip kuralı (AYRI FONKSİYON): girişten ERİŞİLEBİLİR boş hücreler (o bölgede) arasından
+   *       tohum = en derin (BFS uzaklığı en büyük, eşitlikte küçük indeks); sonra tek BAĞLI bölge olarak büyüt: sınırdaki aday hücrelerden
+   *       en derin olanı ekle (eşitlikte küçük indeks); sınır biterse yeni tohum = kalan en derin hücre. Erişilebilir hücre < k ise gönderi
+   *       YEREŞEMEZ (null).
+   *   • dispatch: k hücre TEK TEK yerleşir (en derinden başla). Her yerleşme ayrı iş: önce BFS (güncel tahtaya göre yeni rota), sonra hücre
+   *     kalıcı engel olur. Sonra kayıp (sealed: boş hücre erişilemez), kilit (stuck: hiçbir kart yerleşemez), kazanma (hepsi dolu).
+   * =================================================================================================== */
+  function DLevel(text, zones, hand) {
+    Level.call(this, text, 0);
+    this.zone = Uint8Array.from(zones); this.hand = hand;
+    if (this.zone.length !== this.n) throw new Error('bölge sayısı hedef sayısına eşit değil');
+  }
+  DLevel.prototype = Object.create(Level.prototype); DLevel.prototype.constructor = DLevel;
+  DLevel.prototype.newState = function () { return { filled: this.newFilled(), ptr: this.hand.map(function () { return 0; }) }; };
+  DLevel.prototype.cards = function (st) { return this.hand.map(function (q, s) { var p = st.ptr[s]; return p < q.length ? { slot: s, zone: q[p][0], k: q[p][1] } : null; }); };
+
+  // GÖNDERİ HEDEF KURALI (ilk prototip; değiştirilebilir tek nokta). Dönen: seçim sırasıyla hücre indeksleri ya da null.
+  DLevel.prototype.chooseBatch = function (filled, zone, k, bfsRes) {
+    var b = bfsRes || this.bfs(filled), D = b.dist, T = this.targets, n = this.n, w = this.w, h = this.h, tIdx = this.tIdx, R = [], inR = new Uint8Array(n), i;
+    for (i = 0; i < n; i++) if (!filled[i] && this.zone[i] === zone && D[T[i].cell] >= 0) { R.push(i); inR[i] = 1; }
+    if (R.length < k) return null;
+    function better(a, c) { var da = D[T[a].cell], dc = D[T[c].cell]; return da > dc || (da === dc && a < c); }
+    var inS = new Uint8Array(n), inF = new Uint8Array(n), S = [], front = [];
+    function expand(ti) {
+      for (var d = 0; d < 4; d++) {
+        var rr = T[ti].r + DIRS[d][0], cc = T[ti].c + DIRS[d][1]; if (rr < 0 || cc < 0 || rr >= h || cc >= w) continue;
+        var nt = tIdx[rr * w + cc]; if (nt >= 0 && inR[nt] && !inS[nt] && !inF[nt]) { inF[nt] = 1; front.push(nt); }
+      }
+    }
+    while (S.length < k) {
+      var pick = -1;
+      if (front.length) { var bi = 0; for (i = 1; i < front.length; i++) if (better(front[i], front[bi])) bi = i; pick = front[bi]; front.splice(bi, 1); inF[pick] = 0; }
+      else { for (i = 0; i < R.length; i++) if (!inS[R[i]] && (pick < 0 || better(R[i], pick))) pick = R[i]; }
+      inS[pick] = 1; S.push(pick); expand(pick);
+    }
+    return S;
+  };
+
+  // her slot için: yerleşebilir mi, hedef hücreler
+  DLevel.prototype.options = function (st) {
+    var b = this.bfs(st.filled), self = this;
+    return this.cards(st).map(function (c) { if (!c) return null; var sel = self.chooseBatch(st.filled, c.zone, c.k, b); return sel ? { slot: c.slot, zone: c.zone, k: c.k, cells: sel } : null; });
+  };
+
+  // gönderiyi yolla: hücre hücre yerleşme; her yerleşmede yeni BFS rotası
+  DLevel.prototype.dispatch = function (st, slot) {
+    var card = this.cards(st)[slot]; if (!card) return null;
+    var b0 = this.bfs(st.filled), sel = this.chooseBatch(st.filled, card.zone, card.k, b0); if (!sel) return null;
+    var T = this.targets, D0 = b0.dist, order = sel.slice().sort(function (a, c) { return (D0[T[c].cell] - D0[T[a].cell]) || (a - c); });
+    var f = new Uint8Array(st.filled), steps = [];
+    for (var i = 0; i < order.length; i++) {
+      var ti = order[i], b = this.bfs(f, true);                       // her yerleşmeden önce güncel tahtaya göre BFS
+      if (b.dist[T[ti].cell] < 0) throw new Error('değişmez ihlali: gönderi hücresi erişilemez');
+      var path = [], cur = T[ti].cell; while (cur >= 0) { path.push(cur); cur = b.parent[cur]; } path.reverse();
+      steps.push({ ti: ti, route: path }); f[ti] = 1;
+    }
+    var ptr = st.ptr.slice(); ptr[slot]++;
+    var ns = { filled: f, ptr: ptr }, sealed = this.sealedCells(f), won = this.filledCount(f) === this.n, stuck = false;
+    if (!won && !sealed.length) { stuck = true; var o = this.options(ns); for (var j = 0; j < o.length; j++) if (o[j]) { stuck = false; break; } }
+    return { card: card, selection: sel, cells: order, steps: steps, state: ns, sealed: sealed, won: won, stuck: stuck };
+  };
+  DLevel.prototype.remainingBatches = function (st) { var s = 0, self = this; this.hand.forEach(function (q, i) { s += q.length - st.ptr[i]; }); return s; };
+
+  function routeSig(steps) { var m = 1000000007, h = 0; steps.forEach(function (s) { var a = 0; s.route.forEach(function (c, i) { a = (a + c * (i + 1)) % m; }); h = (h * 31 + a + s.route.length) % m; }); return h; }
+  // parity: slot dizisini oynat (batch_ref.py `simulate` ile aynı çıktı)
+  DLevel.prototype.simulate = function (seq) {
+    var st = this.newState(), out = [], self = this;
+    for (var k = 0; k < seq.length; k++) {
+      var cards = this.cards(st), opts = this.options(st), entry = { slot: seq[k], cards: cards.map(function (c) { return c ? [c.zone, c.k] : null; }), legal: opts.map(function (o) { return !!o; }) };
+      var res = this.dispatch(st, seq[k]);
+      if (!res) { entry.illegal = true; out.push(entry); break; }
+      entry.cells = res.cells; entry.rlen = res.steps.map(function (s) { return s.route.length; }); entry.rsig = routeSig(res.steps);
+      entry.sealed = res.sealed.length > 0; entry.stuck = res.stuck; entry.won = res.won; out.push(entry); st = res.state;
+      if (entry.sealed || entry.stuck || entry.won) break;
+    }
+    return out;
+  };
+
+  return { Level: Level, PLevel: PLevel, DLevel: DLevel, DIRS: DIRS };
 });

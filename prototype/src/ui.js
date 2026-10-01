@@ -101,7 +101,8 @@
   // ---------------------------------------------------------------- seviye / deneme
   function loadLevel(id) {
     var lv = byId[id]; if (!lv) return;
-    G.lv = lv; G.level = new CB.PLevel(lv.grid, lv.pieces); G.palette = lv.palette; G.attemptNo = 0;
+    G.lv = lv; G.batch = !!lv.batch; G.level = lv.batch ? new CB.DLevel(lv.grid, lv.batch.zones, lv.batch.hand) : new CB.PLevel(lv.grid, lv.pieces); G.palette = lv.palette; G.attemptNo = 0;
+    document.body.classList.toggle('batchmode', G.batch);
     G.handQ = lv.hand ? lv.hand.map(function (q) { return q.map(function (id) { return G.level.pieces.findIndex(function (p) { return p.id === id; }); }); }) : null;
     if (lv.art) { imgInit(lv); if (!qs.get('path')) cfg.path = 'A'; }
     newAttempt('load'); layout(); fillSelectors();
@@ -114,7 +115,7 @@
     G.cur = { level: G.lv.id, attempt: ++G.attemptNo, reason: reason, hint: cfg.hint, ghost: cfg.ghost, speed: cfg.speed, undo_budget: cfg.undo, pieces: G.level.P,
               t0: Date.now(), tokens: [], moves: [], outcome: null };
     LOG.attempts.push(G.cur); G.readyAt = now(); G.switches = 0; G.previews = []; saveLog();
-    setMsg('Elindeki 3 parçadan birine bas: kedinin üzerinde nereye gideceği görünür (göndermez). Üçünü de karşılaştır: hangisini ŞİMDİ göndermelisin?', 'info');
+    setMsg(G.batch ? 'Elindeki 3 gönderiden birine bas: resmin üzerinde dolduracağı pikseller parlar, ışık noktaları işçilerin rotasını gösterir (göndermez). Üçünü karşılaştır: hangisini ŞİMDİ göndermelisin?' : 'Elindeki 3 parçadan birine bas: kedinin üzerinde nereye gideceği görünür (göndermez). Üçünü de karşılaştır: hangisini ŞİMDİ göndermelisin?', 'info');
     refresh();
   }
 
@@ -312,7 +313,8 @@
       ctx.save(); ctx.globalAlpha = 0.3 + 0.2 * Math.sin(t * 5); ctx.drawImage(G.sealedCv, ox, oy, W, W); ctx.restore(); ctx.imageSmoothingEnabled = false;
     }
     if (G.read && G.status === 'idle' && (cfg.path === 'B' || cfg.path === 'C')) { drawArtCritical(t); ctx.imageSmoothingEnabled = false; }
-    if (G.selected >= 0 && G.status === 'idle') {   // ÖNİZLEME: seçili piksel yaması resmin gerçek renkleriyle, hafif nabızla belirir
+    if (G.batch && G.read && G.selected >= 0 && G.status === 'idle') drawBatchPreview(t);
+    if (!G.batch && G.selected >= 0 && G.status === 'idle') {   // ÖNİZLEME: seçili piksel yaması resmin gerçek renkleriyle, hafif nabızla belirir
       var sp = sprite(G.selected), pulse = 0.5 + 0.5 * Math.sin(t * 5.2);
       ctx.save(); ctx.globalAlpha = 0.55 + 0.4 * pulse; ctx.drawImage(sp.cv, ox + sp.c0 * s, oy + sp.r0 * s, sp.w * s, sp.h * s); ctx.restore(); ctx.imageSmoothingEnabled = false;
       ctx.save(); ctx.translate(ox, oy); ctx.scale(s, s); ctx.lineJoin = 'miter'; ctx.shadowColor = 'rgba(255,255,255,.95)'; ctx.shadowBlur = s * (1.5 + 1.5 * pulse); ctx.strokeStyle = 'rgba(255,255,255,.95)'; ctx.lineWidth = 0.7; ctx.stroke(pieceEdge(G.selected));
@@ -321,9 +323,16 @@
     if (G.read && G.status === 'idle' && (cfg.path === 'A' || cfg.path === 'C')) drawArtTrail(t);
     if (G.flash) {   // tamamlanan yamanın parıltısı
       var age = t - G.flash.t0; if (age > 0.9) G.flash = null; else {
-        var fs = sprite(G.flash.pi), fa = 1 - age / 0.9;
+        var fa = 1 - age / 0.9;
+        if (G.flash.cells) {   // gönderi: tamamlanan piksel kümesinin parıltısı
+          if (!G.flash.cv) { G.flash.cv = pixCanvas(G.flash.cells, '#fff'); G.flash.edge = edgePath(G.flash.cells); }
+          ctx.save(); ctx.globalAlpha = 0.45 * fa; ctx.drawImage(G.flash.cv, ox, oy, W, W); ctx.restore(); ctx.imageSmoothingEnabled = false;
+          ctx.save(); ctx.translate(ox, oy); ctx.scale(s, s); ctx.globalAlpha = fa; ctx.shadowColor = '#fff'; ctx.shadowBlur = s * 3; ctx.strokeStyle = '#fff'; ctx.lineWidth = 0.6; ctx.stroke(G.flash.edge); ctx.restore();
+        } else {
+        var fs = sprite(G.flash.pi);
         ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = 0.5 * fa; ctx.drawImage(fs.cv, ox + fs.c0 * s, oy + fs.r0 * s, fs.w * s, fs.h * s); ctx.restore(); ctx.imageSmoothingEnabled = false;
         ctx.save(); ctx.translate(ox, oy); ctx.scale(s, s); ctx.globalAlpha = fa; ctx.shadowColor = '#fff'; ctx.shadowBlur = s * 3; ctx.strokeStyle = '#fff'; ctx.lineWidth = 0.6; ctx.stroke(pieceEdge(G.flash.pi)); ctx.restore();
+        }
       }
     }
     IMG.sparks = IMG.sparks.filter(function (p) { return t - p.t0 < 0.4; });
@@ -410,8 +419,69 @@
     }
     return { routes: L.routesFor(res), cut: res.sealed.slice(), detour: detour, stuck: res.stuck, won: res.won };
   }
+  // ---- GÖNDERİ (batch) modu: kart = seçim birimi, piksel = yerleşim birimi
+  function pixColorCanvas(tis) { var L = G.level, c = mkCanvas(IMG.N, IMG.N), g = c.getContext('2d'); tis.forEach(function (ti) { var tg = L.targets[ti]; g.fillStyle = IMG.colors[ti]; g.fillRect(tg.c, tg.r, 1, 1); }); return c; }
+  function selectBatch(slot) {
+    if (G.status !== 'idle') return;
+    var L = G.level, res = L.dispatch(G.st, slot); if (!res) { toast('Bu gönderi şu an yerleşemez'); return; }
+    if (cfg.hint === 0) { sendBatch(slot); return; }
+    if (G.selected === slot) { sendBatch(slot); return; }
+    G.selected = slot; G.opt = { cells: res.cells.slice() }; G.switches++; G.previews.push(slot);
+    G.read = { cells: res.cells.slice(), routes: res.steps.map(function (st) { return st.route; }), cut: res.sealed.slice(), detour: [], stuck: res.stuck, won: res.won };   // cut/detour yalnız geliştirici modları B/C için; oyuncuya söylenmez
+    setMsg('Gönderi seçildi: parlayan pikseller bu gönderinin dolduracağı yer; ışık noktaları işçilerin gerçek rotası. Göndermek için aynı karta ya da Gönder\'e bas; diğer gönderilere bakıp karşılaştırabilirsin.', 'info'); refresh();
+  }
+  function sendBatch(slot) {
+    if (G.status !== 'idle') return;
+    var L = G.level, res = L.dispatch(G.st, slot); if (!res) { toast('Bu gönderi şu an yerleşemez'); return; }
+    var t0 = now(), before = G.st, card = res.card, cardsBefore = L.cards(before).map(function (c) { return c ? c.k : null; }), optsBefore = L.options(before).filter(Boolean).length;
+    G.history.push({ slot: slot, before: before, n: card.k });
+    G.st = res.state; G.pending = { sealed: res.sealed, won: res.won, stuck: res.stuck }; G.dest = { cells: res.cells.slice() };
+    // her piksel AYRI bir işçi/iş: işçi i, i-1 pikseli yerleştikten sonraki tahtaya göre (engine her adımda yeni BFS yaptı) rotasını yürür
+    var units = res.steps.map(function (st) { return { ti: st.ti, cells: [st.ti], path: st.route }; });
+    var v = 44 * cfg.speed, gap = 0.03 / cfg.speed, tr = units.map(function (u) { return Math.max(1, u.path.length - 1) / v; }), T0 = 0.05;
+    for (var i = 0; i < units.length; i++) T0 = Math.max(T0, tr[i] - i * gap + 0.05);
+    G.workers = units.map(function (u, i) { return { ti: u.ti, cells: u.cells, path: u.path, depart: t0 + T0 + i * gap - tr[i], arrive: t0 + T0 + i * gap, travel: tr[i], color: 0, state: 0, doneAt: 0, cargo: IMG.colors[u.ti] }; });
+    G.waveEnd = t0 + T0 + (units.length - 1) * gap + 0.7;
+    var a = G.cur; a.tokens.push('S' + slot + ':' + card.k);
+    a.moves.push({ i: a.moves.length + 1, token: 'S' + slot, slot: slot, k: card.k, zone: G.lv.batch.zone_names[card.zone], cards_before: cardsBefore, t_ms: Date.now() - a.t0, decide_ms: Math.round((t0 - G.readyAt) * 1000),
+                   preview_switches: G.switches, previewed: G.previews.slice(), placed: res.cells.length, legal_before: optsBefore, remaining_batches: L.remainingBatches(before), filled_after: L.filledCount(res.state.filled),
+                   sealed_after: res.sealed.length > 0, stuck_after: res.stuck, path_mode: cfg.path });
+    G.selected = -1; G.opt = null; G.read = null; G.status = 'anim'; saveLog(); refresh();
+  }
+  function drawCrate(cv, k) {
+    var dpr = window.devicePixelRatio || 1, w = 88, h = 66; cv.style.width = w + 'px'; cv.style.height = h + 'px'; cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr);
+    var g = cv.getContext('2d'); g.setTransform(dpr, 0, 0, dpr, 0, 0); g.clearRect(0, 0, w, h); g.imageSmoothingEnabled = false;
+    var cols = ['#f0a04b', '#fff0d6', '#ff8fa6', '#d9772c', '#ffc57a'], c = Math.max(2, Math.min(10, Math.round(k / 15)));   // üstte taşan minik kutular = miktar göstergesi
+    for (var i = 0; i < c; i++) { var row = i < 5 ? 0 : 1, ix = i < 5 ? i : i - 5, x = 12 + ix * 12 + (row ? 6 : 0), y = row ? 10 : 20; g.fillStyle = cols[i % cols.length]; g.fillRect(x, y, 9, 9); g.strokeStyle = '#4a2a1a'; g.lineWidth = 1; g.strokeRect(x + 0.5, y + 0.5, 8, 8); }
+    g.fillStyle = '#c98a4a'; g.fillRect(8, 30, 72, 32); g.fillStyle = '#e0a866'; g.fillRect(8, 30, 72, 6); g.fillStyle = '#a86d35';
+    [26, 44, 62].forEach(function (x) { g.fillRect(x, 36, 3, 26); }); g.fillRect(8, 56, 72, 3);
+    g.strokeStyle = '#4a2a1a'; g.lineWidth = 2; g.strokeRect(9, 31, 70, 30);
+  }
+  function buildHandBatch(seen, idle, opts) {
+    var L = G.level, hand = $('hand'), cards = L.cards(seen);
+    var key = G.lv.id + '#' + G.attemptNo + '|' + cards.map(function (c, i) { return c ? c.k + (opts[i] ? 'f' : 'x') : '-'; }).join(',') + '|' + G.selected + '|' + (idle ? 1 : 0);
+    if (key === G.handSig) return; G.handSig = key; hand.innerHTML = '';
+    cards.forEach(function (c, slot) {
+      if (!c) return;
+      var b = document.createElement('button'), cv = document.createElement('canvas'), ok = !!opts[slot];
+      b.className = 'pcard art batch' + (G.selected === slot ? ' sel' : '') + (ok ? '' : ' nofit'); b.id = 'slot' + slot; b.dataset.slot = slot; b.dataset.k = c.k; b.disabled = !idle || !ok; b.title = 'Gönderi ' + (slot + 1) + ' · ' + c.k + ' pixel' + (ok ? '' : ' · şu an yerleşemez');
+      var bx = document.createElement('div'); bx.className = 'pshape'; drawCrate(cv, c.k); bx.appendChild(cv); b.appendChild(bx);
+      var nm = document.createElement('div'); nm.className = 'bnum'; nm.textContent = String(c.k); b.appendChild(nm);
+      var sn = document.createElement('span'); sn.className = 'pn'; sn.textContent = (slot + 1) + ' · pixel' + (ok ? '' : ' · hazır değil'); b.appendChild(sn);
+      b.addEventListener('click', function () { select(slot); }); hand.appendChild(b);
+    });
+    if (!hand.children.length) hand.innerHTML = '<span class="meta">gönderi kalmadı</span>';
+  }
+  function drawBatchPreview(t) {   // seçili gönderinin dolduracağı pikseller: resmin gerçek renkleriyle nabız + piksel basamaklı çerçeve
+    var rd = G.read, s = G.s, W = G.level.w * s, pulse = 0.5 + 0.5 * Math.sin(t * 5.2);
+    if (!rd.cv) { rd.cv = pixColorCanvas(rd.cells); rd.edge = edgePath(rd.cells); }
+    ctx.save(); ctx.globalAlpha = 0.55 + 0.4 * pulse; ctx.imageSmoothingEnabled = false; ctx.drawImage(rd.cv, G.ox, G.oy, W, W); ctx.restore();
+    ctx.save(); ctx.translate(G.ox, G.oy); ctx.scale(s, s); ctx.lineJoin = 'miter'; ctx.shadowColor = 'rgba(255,255,255,.95)'; ctx.shadowBlur = s * (1.5 + 1.5 * pulse); ctx.strokeStyle = 'rgba(255,255,255,.95)'; ctx.lineWidth = 0.7; ctx.stroke(rd.edge);
+    ctx.shadowBlur = 0; ctx.strokeStyle = 'rgba(70,40,20,.9)'; ctx.lineWidth = 0.22; ctx.stroke(rd.edge); ctx.restore(); ctx.imageSmoothingEnabled = false;
+  }
   function feasibleNow() { return G.level.options(G.st); }
   function send(pi) {
+    if (G.batch) { sendBatch(pi); return; }
     if (G.status !== 'idle') return;
     var L = G.level, res = L.place(G.st, pi);
     if (!res) { toast('Bu parça şu an yerleşemez'); return; }
@@ -435,19 +505,20 @@
   }
   function finishWave() {
     if (G.lv.art) { var pi0 = G.lastPi; G.revealQ = []; IMG.bctx.clearRect(0, 0, IMG.N, IMG.N); for (var q = 0; q < G.level.n; q++) if (G.st.filled[q]) imgReveal(q); }
-    if (G.lv.art && G.dest) G.flash = { t0: now(), pi: G.lastPi };
+    if (G.lv.art && G.dest) G.flash = G.batch ? { t0: now(), cells: G.dest.cells.slice() } : { t0: now(), pi: G.lastPi };
     G.workers = []; G.dest = null; G.readyAt = now(); G.switches = 0; G.previews = [];
     var p = G.pending; G.pending = null;
     if (p.won) { G.status = 'won'; G.wonAt = now(); G.cur.outcome = 'won'; G.cur.t1 = Date.now();
-      setMsg('Resim tamamlandı! ' + G.history.length + ' parça gönderdin. ' + (cfg.test ? '' : 'Yeniden başlatabilir ya da başka seviye seçebilirsin.'), 'good'); }
+      setMsg('Resim tamamlandı! ' + G.history.length + (G.batch ? ' gönderi yolladın. ' : ' parça gönderdin. ') + (cfg.test ? '' : 'Yeniden başlatabilir ya da başka seviye seçebilirsin.'), 'good'); }
     else if (p.sealed.length) { G.status = 'sealed'; G.sealedShown = p.sealed; G.sealedCv = null; G.cur.sealed_at_move = G.cur.moves.length; G.cur.outcome = 'sealed'; G.cur.t1 = Date.now();
       setMsg('Kilitlendi: ' + (G.lv.art ? 'kedinin bir bölümüne' : p.sealed.length + ' boş hücreye') + ' artık girişten yol yok (turuncu). Bu seviye bu hâliyle tamamlanamaz.' + (G.undoLeft > 0 ? ' Geri alabilirsin.' : ''), 'bad'); }
     else if (p.stuck) { G.status = 'stuck'; G.cur.stuck_at_move = G.cur.moves.length; G.cur.outcome = 'stuck'; G.cur.t1 = Date.now();
-      setMsg('Sıkıştı: kalan parçalardan hiçbiri boş hücrelere yerleşemiyor. Bu seviye bu hâliyle tamamlanamaz.' + (G.undoLeft > 0 ? ' Geri alabilirsin.' : ''), 'bad'); }
-    else { G.status = 'idle'; setMsg('Sıradaki parça? ' + (cfg.hint ? 'Bir parçaya bir kez bas: nereye gideceğini göster; aynı parçaya/Gönder\'e tekrar bas: gönder.' : ''), 'info'); }
+      setMsg(G.batch ? 'Sıkıştı: elindeki gönderilerden hiçbiri yerleşemiyor. Bu seviye bu hâliyle tamamlanamaz.' : 'Sıkıştı: kalan parçalardan hiçbiri boş hücrelere yerleşemiyor. Bu seviye bu hâliyle tamamlanamaz.' + (G.undoLeft > 0 ? ' Geri alabilirsin.' : ''), 'bad'); }
+    else { G.status = 'idle'; setMsg(G.batch ? 'Sıradaki gönderi? Bir karta bir kez bas: nereye gideceğini göster; aynı karta/Gönder\'e tekrar bas: gönder.' : 'Sıradaki parça? ' + (cfg.hint ? 'Bir parçaya bir kez bas: nereye gideceğini göster; aynı parçaya/Gönder\'e tekrar bas: gönder.' : ''), 'info'); }
     saveLog(); refresh();
   }
   function select(pi) {
+    if (G.batch) { selectBatch(pi); return; }
     if (G.status !== 'idle') return;
     var L = G.level, p = L.pieces[pi]; if (!p || G.st.used[pi]) return;
     var o = L.chooseTarget(G.st.filled, pi); if (!o) { toast('Bu parça şu an hiçbir yere yerleşemez'); return; }
@@ -490,6 +561,7 @@
     if (G.handQ) { var o2 = []; G.handQ.forEach(function (q) { for (var i = 0; i < q.length; i++) if (!st.used[q[i]]) { o2.push(q[i]); break; } }); return o2; }
     var out = []; G.level.letters.forEach(function (x, ci) { var pi = nextOfColour(ci, st); if (pi >= 0) out.push(pi); }); return out; }
   function buildHand(seen, idle) {
+    if (G.batch) { buildHandBatch(seen, idle, G.level.options(seen)); return; }
     var L = G.level, hand = $('hand'), opts = L.options(seen), hp = handPieces(seen);
     var key = G.lv.id + '#' + G.attemptNo + '|' + hp.map(function (pi) { return pi + (opts[pi] ? 'f' : 'x'); }).join(',') + '|' + G.selected + '|' + (idle ? 1 : 0);
     if (key === G.handSig) return; G.handSig = key;
@@ -512,18 +584,22 @@
   }
   function refresh() {
     var L = G.level; if (!L) return;
-    var seen = G.status === 'anim' ? { filled: G.visual, used: G.st.used } : G.st;   // animasyon sürerken oyuncunun GÖRDÜĞÜ durum
-    var n = L.n, done = L.filledCount(seen.filled), rem = L.remaining(seen.filled), idle = G.status === 'idle', opts = L.options(seen);
+    var seen = G.status === 'anim' ? { filled: G.visual, used: G.st.used, ptr: (G.history.length && G.history[G.history.length - 1].before.ptr) || G.st.ptr } : G.st;   // animasyon sürerken oyuncunun GÖRDÜĞÜ durum
+    var n = L.n, done = L.filledCount(seen.filled), idle = G.status === 'idle';
     $('lvlTitle').textContent = cfg.test ? ('Seviye ' + (G.testIdx + 1) + ' / ' + order.length) : G.lv.name;
-    $('lvlMeta').textContent = G.lv.art ? 'Resmi bölge bölge inşa et · ' + L.P + ' parça' + (cfg.test ? '' : ' · ' + G.lv.id) : n + ' hücre · ' + L.K + ' renk · ' + L.P + ' parça · giriş hücresi: ' + L.entrances.length + (cfg.test ? '' : ' · ' + G.lv.id);
-    $('progTxt').textContent = G.lv.art ? 'Resim: %' + Math.round(100 * done / n) + ' tamamlandı · gönderilen parça: ' + G.history.length + ' / ' + L.P : 'Yerleşen: ' + done + ' / ' + n + ' kutu (' + Math.round(100 * done / n) + '%) · gönderilen parça: ' + G.history.length + ' / ' + L.P;
+    var totalB = G.batch ? L.hand.reduce(function (a, q) { return a + q.length; }, 0) : 0;
+    $('lvlMeta').textContent = G.batch ? 'Resmi pixel pixel inşa et · ' + totalB + ' gönderi' + (cfg.test ? '' : ' · ' + G.lv.id) : G.lv.art ? 'Resmi bölge bölge inşa et · ' + L.P + ' parça' + (cfg.test ? '' : ' · ' + G.lv.id) : n + ' hücre · ' + L.K + ' renk · ' + L.P + ' parça · giriş hücresi: ' + L.entrances.length + (cfg.test ? '' : ' · ' + G.lv.id);
+    $('progTxt').textContent = G.batch ? 'Resim: %' + Math.round(100 * done / n) + ' tamamlandı · yollanan gönderi: ' + G.history.length + ' / ' + totalB : G.lv.art ? 'Resim: %' + Math.round(100 * done / n) + ' tamamlandı · gönderilen parça: ' + G.history.length + ' / ' + L.P : 'Yerleşen: ' + done + ' / ' + n + ' kutu (' + Math.round(100 * done / n) + '%) · gönderilen parça: ' + G.history.length + ' / ' + L.P;
     $('progBar').style.width = (100 * done / n) + '%';
     $('stock').innerHTML = '';   // renk stoğu karar alanında gösterilmez
-    var hist = ''; G.history.forEach(function (h) { hist += '<i style="background:' + col(h.col) + '" title="' + h.n + ' hücre">' + (G.lv.art ? '' : h.n) + '</i>'; });
+    var hist = ''; G.history.forEach(function (h) { hist += G.batch ? '<i class="bchip" title="' + h.n + ' pixel">' + h.n + '</i>' : '<i style="background:' + col(h.col) + '" title="' + h.n + ' hücre">' + (G.lv.art ? '' : h.n) + '</i>'; });
     $('history').innerHTML = hist || '<span class="meta">henüz yok</span>';
     buildHand(seen, idle);
     var sp = $('selShape'), si = $('selInfo');
-    if (G.selected >= 0 && G.opt) {
+    if (G.batch) {
+      if (G.selected >= 0 && G.opt) { var ck = L.cards(G.st)[G.selected]; sp.style.display = ''; drawCrate(sp, ck ? ck.k : 0); si.textContent = 'Seçili gönderi: ' + G.opt.cells.length + ' pixel (kedinin %' + Math.round(100 * G.opt.cells.length / n) + '\'i)'; }
+      else { sp.style.display = 'none'; si.textContent = 'Bir gönderi seç: dolduracağı pikseller resmin üzerinde parlar.'; }
+    } else if (G.selected >= 0 && G.opt) {
       var p = L.pieces[G.selected]; sp.style.display = '';
       if (G.lv.art) {
         drawSpriteTo(sp, G.selected, 80); si.textContent = 'Seçili bölge: kedinin %' + Math.round(100 * G.opt.cells.length / n) + '\'i';
@@ -556,7 +632,7 @@
     setPathMode(cfg.path);
     $('hintSel').value = String(cfg.hint); $('ghostChk').checked = cfg.ghost; $('speedSel').value = [1, 2, 4].indexOf(cfg.speed) >= 0 ? String(cfg.speed) : '1'; $('undoSel').value = String(cfg.undo);
     if (cfg.test) { $('lvlLbl').style.display = 'none'; $('dev').style.display = 'none'; $('parityBtn').style.display = 'none'; $('hintSel').parentNode.style.display = 'none'; $('ghostChk').parentNode.style.display = 'none'; $('undoLbl').style.display = 'none'; }
-    if (!$('levelSel').options.length) $('levelSel').innerHTML = LEVELS.map(function (l) { return '<option value="' + l.id + '">' + l.id + ' · ' + l.name + ' (' + l.cells + ' hücre, ' + l.pieces.length + ' parça)</option>'; }).join('');
+    if (!$('levelSel').options.length) $('levelSel').innerHTML = LEVELS.map(function (l) { return '<option value="' + l.id + '">' + l.id + ' · ' + l.name + ' (' + l.cells + ' hücre, ' + (l.pieces ? l.pieces.length + ' parça' : 'gönderi sistemi') + ')</option>'; }).join('');
     $('levelSel').value = G.lv.id;
   }
 
@@ -573,7 +649,7 @@
   function runParity() {
     var ok = 0, total = 0, bad = [], rows = '';
     VECTORS.levels.forEach(function (lv) {
-      var L = new CB.PLevel(lv.grid, lv.pieces), lok = 0;
+      var L = lv.batch ? new CB.DLevel(lv.grid, lv.batch.zones, lv.batch.hand) : new CB.PLevel(lv.grid, lv.pieces), lok = 0;
       lv.cases.forEach(function (c) {
         total++; var sim = L.simulate(c.sequence);
         if (JSON.stringify(sim) === JSON.stringify(c.expected)) { ok++; lok++; } else bad.push(lv.level_id + '/' + c.name);
@@ -612,7 +688,7 @@
   window.addEventListener('resize', layout);
   window.addEventListener('keydown', function (e) {
     if (e.target && /select|input|textarea/i.test(e.target.tagName)) return;
-    if (e.key >= '0' && e.key <= '9') { var hp = handPieces(G.st), pi = hp[parseInt(e.key, 10) - 1]; if (pi != null) select(pi); }
+    if (e.key >= '0' && e.key <= '9') { if (G.batch) { selectBatch(parseInt(e.key, 10) - 1); } else { var hp = handPieces(G.st), pi = hp[parseInt(e.key, 10) - 1]; if (pi != null) select(pi); } }
     else if (e.key === 'Enter' || e.key === ' ') { if (G.selected >= 0) { e.preventDefault(); send(G.selected); } }
     else if (e.key === 'z' || e.key === 'Z') undo();
     else if (e.key === 'r' || e.key === 'R') newAttempt('restart');
@@ -620,12 +696,12 @@
   if (window.ResizeObserver) new ResizeObserver(layout).observe($('boardWrap'));
 
   // otomasyon / araştırma API'si (tarayıcı testleri ve kayıt için). Parça = indeks ya da id ('P3')
-  function pidx(x) { if (typeof x === 'number') return x; if (handPieces(G.st).map(function (q) { return G.level.pieces[q].id; }).indexOf(x) < 0 && G.level.letters.indexOf(x) < 0) return -1; var ci = G.level.letters.indexOf(x); if (ci >= 0) return nextOfColour(ci); var k = -1; G.level.pieces.forEach(function (p) { if (p.id === x) k = p.i; }); return k; }
+  function pidx(x) { if (G.batch) return +x; if (typeof x === 'number') return x; if (handPieces(G.st).map(function (q) { return G.level.pieces[q].id; }).indexOf(x) < 0 && G.level.letters.indexOf(x) < 0) return -1; var ci = G.level.letters.indexOf(x); if (ci >= 0) return nextOfColour(ci); var k = -1; G.level.pieces.forEach(function (p) { if (p.id === x) k = p.i; }); return k; }
   window.CBGAME = {
     send: function (x) { var i = pidx(x); if (cfg.hint === 0) send(i); else { G.selected = -1; select(i); select(i); } },
     select: function (x) { select(pidx(x)); },
     state: function () { return { status: G.status, filled: G.level.filledCount(G.st.filled), n: G.level.n, waves: G.history.length, level: G.lv.id, sealed: G.sealedShown.length, selected: G.selected,
-                                  left: G.level.remainingPieces(G.st), undoLeft: G.undoLeft, opt: G.opt ? G.opt.cells.length : 0 }; },
+                                  left: G.batch ? G.level.remainingBatches(G.st) : G.level.remainingPieces(G.st), cards: G.batch ? G.level.cards(G.st).map(function (c) { return c ? c.k : null; }) : null, undoLeft: G.undoLeft, opt: G.opt ? G.opt.cells.length : 0 }; },
     read: function () { return G.read ? { cut: G.read.cut.slice(), detour: G.read.detour.slice(), stuck: G.read.stuck, won: G.read.won, routes: G.read.routes.map(function (r) { return r.slice(); }) } : null; },
     workerPaths: function () { return G.workers.map(function (w) { return w.path.slice(); }); },
     setPath: setPathMode, pathMode: function () { return cfg.path; },

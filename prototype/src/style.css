@@ -49,3 +49,7 @@ footer#controls { display:flex; flex-wrap:wrap; gap:10px; align-items:stretch; j
 .pcard.art { background:#fdf7ec; border-color:#d9c9a6; min-width:120px; padding:8px 12px; } .pcard.art .pshape { min-height:86px; } .pcard.art .pn { color:#8a7a5a; font-size:11px; }
 .pcard.art.sel { border-color:var(--acc); background:#fff3cf; }
 .pcard canvas, #selShape { image-rendering:pixelated; }
+.pcard.batch { min-width:132px; } .pcard.batch .pshape { min-height:70px; } .bnum { font:800 26px/1 system-ui; color:#4a2a1a; margin-top:2px; } .pcard.batch .pn { color:#8a7a5a; }
+#history i.bchip { background:#f0a04b; color:#4a2a1a; width:auto; min-width:26px; padding:0 4px; font-size:10px; }
+.batchmode #pathPills button[data-m="B"], .batchmode #pathPills button[data-m="C"] { display:none; }
+.pcard canvas, #selShape { image-rendering:pixelated; }
