@@ -78,6 +78,12 @@ rep('{"id":"Market_Plaza_Stamp","label":"Meydan / avlu","kind":"area","type":"pl
     '{"id":"Market_Plaza_Stamp","label":"Meydan / avlu","kind":"area","type":"plaza","w":20,"d":20},{"id":"Village_Fountain","label":"Köy çeşmesi","kind":"utility","type":"fountain","w":4,"d":4}')
 rep("else if(o.kind==='utility'){fill='#91a4a2';edge='#506965'}", "else if(o.kind==='utility'){fill=o.type==='fountain'?'#7fc4cf':'#91a4a2';edge=o.type==='fountain'?'#2f7f8c':'#506965'}")
 
+# --- tasarım mantık denetimi paneli ---------------------------------------------------
+rep('.stat-bad{color:#b7503d}.stat-ok{color:#2d7a4b}', '.stat-bad{color:#b7503d}.stat-ok{color:#2d7a4b}.lintbox{border-top:1px solid var(--line);margin-top:12px;padding-top:10px;font-size:12px}.lint-row{display:flex;flex-direction:column;padding:3px 0}.lint-row.ok span{color:#2d7a4b}.lint-row.bad span{color:#b7503d;font-weight:700}.lint-row small{color:#6f5232;font-size:11px;line-height:1.3}')
+rep('<div class="stats" id="stats"></div>', '<div class="stats" id="stats"></div><div class="lintbox" id="lint"></div>')
+rep("updateStats();$('mapCaption')", "updateStats();updateLint();$('mapCaption')")
+rep("<b>Başlangıç ölçüleri:</b> Evler 3,4 × 3,3 m;", "<b>Başlangıç ölçüleri:</b> Evler 4,8–6,2 × 4,2–5,0 m (5 farklı ölçü);")
+
 # --- istatistik ------------------------------------------------------------------
 rep("$('stats').innerHTML=`<b>Yerleştirme özeti</b><div><span>56 öğelik listeden yerleşen</span><strong>${placedTarget} / ${target.length}</strong></div>",
     "const badN=[...connBad.keys()].filter(id=>TARGET_IDS.has(id)).length,lv={1:0,2:0,3:0};for(const o of objects)if(o.kind==='path'&&lv[o.lvl]!==undefined)lv[o.lvl]++;"

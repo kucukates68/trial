@@ -121,3 +121,80 @@ function drawOverlay(){
  if(hover){const col=hover.kind==='door'?'#e0573c':hover.kind==='node'?'#1f7a4d':'#2b6cb0';s+=`<circle cx="${mapPx(hover.x)}" cy="${mapPy(hover.z)}" r="7" fill="${col}" fill-opacity=".18" stroke="${col}" stroke-width="2"/><circle cx="${mapPx(hover.x)}" cy="${mapPy(hover.z)}" r="2" fill="${col}"/>`}
  g.innerHTML=s;
 }
+
+/* ===================== TASARIM MANTIK DENETİMİ (7 kural, canlı) =====================
+   Python karşılığı: village_semantic_linter.py (aynı eşikler). */
+function polyEdgeDist(x,z,poly){let b=1e9;for(let i=0;i<poly.length;i++){const a=poly[i],c=poly[(i+1)%poly.length],d=segClosest(x,z,a.x,a.z,c.x,c.z).d;if(d<b)b=d}return b}
+function mkWater(){
+ const lake=objects.find(o=>o.type==='lake'&&o.pts),river=objects.find(o=>o.type==='river'&&o.pts),hw=(river&&river.strokeW||12)/2;
+ const rd=(x,z)=>{if(!river)return 99;let b=1e9;const p=river.pts;for(let k=0;k<p.length-1;k++){const d=segClosest(x,z,p[k].x,p[k].z,p[k+1].x,p[k+1].z).d;if(d<b)b=d}return b-hw};
+ const ld=(x,z)=>{if(!lake)return 99;const d=polyEdgeDist(x,z,lake.pts);return inPoly(x,z,lake.pts)?-d:d};
+ return {rd,ld,wd:(x,z)=>Math.min(rd(x,z),ld(x,z))};
+}
+function boundaryPts(o,step){const hw=o.w/2,hd=o.d/2,out=[],E=[[-hw,-hd,hw,-hd],[hw,-hd,hw,hd],[hw,hd,-hw,hd],[-hw,hd,-hw,-hd]],a=rad(o.rot||0),c=Math.cos(a),s=Math.sin(a);
+ for(const [ax,az,bx,bz] of E){const n=Math.max(1,Math.floor(Math.hypot(bx-ax,bz-az)/step));for(let i=0;i<n;i++){const t=i/n,lx=ax+(bx-ax)*t,lz=az+(bz-az)*t;out.push({x:o.x+lx*c-lz*s,z:o.z+lx*s+lz*c})}}return out}
+function rectGapJS(a,b){let best=99;for(const [p,q] of [[a,b],[b,a]])for(const pt of boundaryPts(p,.5)){const d=rectDist(q,pt.x,pt.z);if(d<best)best=d}return best}
+const LINT_TRIPLES=[['W_House_',[1,2,3]],['W_House_',[4,5,6]],['E_House_',[1,2,3]],['E_House_',[5,6,7]],['E_House_',[8,9,10]],['E_House_',[11,12,13]],['Dock_Build_',[1,2,3]],['Dock_Build_',[2,3,4]],['Dock_Build_',[5,6,7]],['Dock_Build_',[6,7,8]]];
+function lintAll(){
+ const by=id=>objects.find(o=>o.id===id),Wt=mkWater(),items=objects.filter(isItem),res=[],f1=n=>n.toFixed(1);
+ const fountain=objects.find(o=>o.type==='fountain'),plaza=by('Market_Plaza'),pad=n=>String(n).padStart(2,'0');
+ /* 1 su kıyısı */
+ {const m=[];for(const id of ['Boat_House_01','Boat_House_02']){const o=by(id);if(!o){m.push(id+' yok');continue}
+   let bd=1e9;for(const p of boundaryPts(o,.5)){const d=Wt.wd(p.x,p.z);if(d<bd)bd=d}
+   if(bd<-.05)m.push(id+' suyun içinde');else if(bd>4)m.push(`${id} kıyıdan ${f1(bd)} m uzak (en çok 4 m)`);
+   else{let wp=null;for(let r=.5;r<30&&!wp;r+=.5)for(let k=0;k<36;k++){const a=k*Math.PI/18,x=o.x+Math.cos(a)*r,z=o.z+Math.sin(a)*r;if(Wt.wd(x,z)<=.3){wp={x,z};break}}
+    if(wp){const vx=wp.x-o.x,vz=wp.z-o.z,L=Math.hypot(vx,vz)||1,f=facingOf(o);if((f[0]*vx+f[1]*vz)/L<-.2)m.push(id+' cephesi sudan uzağa bakıyor')}}}
+  const mill=by('Watermill_01');if(!mill)m.push('Watermill_01 yok');else{let dep=-1e9;for(const p of boundaryPts(mill,.25)){const d=-Wt.rd(p.x,p.z);if(d>dep)dep=d}if(dep<1)m.push(`Watermill_01 çarkı suya ${f1(Math.max(dep,0))} m giriyor (en az 1.0 m)`)}
+  res.push({name:'Su kıyısı zorunluluğu',m});}
+ /* 2 çiftlik */
+ {const m=[],hay=by('Hay_Storage'),pa=by('Pasture_Area_01'),barns=['Farm_Barn_01','Farm_Barn_02'].map(by).filter(Boolean);
+  if(!(hay&&pa&&barns.length))m.push('çiftlik öğeleri eksik');else{
+   const dh=Math.min(...barns.map(b=>rectGapJS(hay,b)));if(dh>18)m.push(`Samanlık ahırdan ${f1(dh)} m uzak (en çok 18 m)`);
+   let dl=1e9;for(const p of boundaryPts(pa,.5)){const d=Wt.ld(p.x,p.z);if(d<dl)dl=d}if(dl<12)m.push(`Otlak göle ${f1(dl)} m yakın (en az 12 m)`);
+   const dp=Math.min(...barns.map(b=>rectGapJS(pa,b)));if(dp>15)m.push(`Otlak ahırlardan ${f1(dp)} m uzak (en çok 15 m)`)}
+  res.push({name:'Çiftlik ve hayvancılık bütünlüğü',m});}
+ /* 3 tarım */
+ {const m=[],plots=['Crop_Plot_01','Crop_Plot_02','Crop_Plot_03','Orchard_Plot'].map(by).filter(Boolean);
+  for(const p of plots)if(p.z<52||p.z>165)m.push(`${p.id} z=${p.z.toFixed(0)}: tarım kuşağı dışında (52..165)`);
+  for(const p of plots)if(plots.length>1&&Math.min(...plots.filter(q=>q!==p).map(q=>rectGapJS(p,q)))>15)m.push(`${p.id} diğer tarım parsellerine komşu değil`);
+  for(const o of objects)if(o.gen&&o.kind==='area'&&(o.type==='crop'||o.type==='orchard')&&o.pts){const cz=o.pts.reduce((a,p)=>a+p.z,0)/o.pts.length;if(cz>140||cz<52)m.push(`${o.id} (${o.type}) z=${cz.toFixed(0)}: ekin/meyve olamaz`)}
+  res.push({name:'Tarım ve coğrafya uyumu',m});}
+ /* 4 zanaat/liman */
+ {const m=[],ws=by('Repair_Workshop_01'),nal=by('Market_Shop_04');
+  if(ws&&nal){const d=Math.hypot(ws.x-nal.x,ws.z-nal.z);if(d>30)m.push(`Nalbant (M04) atölyeden ${d.toFixed(0)} m uzak (en çok 30 m)`)}
+  const cz=plaza&&plaza.pts?plaza.pts.reduce((a,p)=>a+p.z,0)/plaza.pts.length:96.5;
+  for(const id of ['Market_Shop_06','Market_Shop_09','Market_Shop_10']){const s=by(id);if(s&&s.z>=cz)m.push(id+' pazarın kuzey yarısında (balıkçı dükkânları güneyde olmalı)')}
+  res.push({name:'Zanaat ve liman komşuluğu',m});}
+ /* 5 çeşitlilik */
+ {const m=[],houses=items.filter(o=>o.type==='house'),small=houses.filter(o=>o.w<4.6||o.d<4).map(o=>o.id);
+  if(small.length)m.push('Kulübe boyutu (<4.6x4.0 m): '+small.slice(0,4).join(', ')+(small.length>4?'…':''));
+  const sizes=new Set(houses.map(o=>f1(o.w)+'x'+f1(o.d)));if(sizes.size<3)m.push(`Ev ölçüsü çeşitliliği yetersiz (${sizes.size} tür, en az 3)`);
+  for(const [pre,ids] of LINT_TRIPLES){const tri=ids.map(i=>by(pre+pad(i)));if(tri.some(t=>!t))continue;
+   const zs=tri.map(t=>t.z),rs=tri.map(t=>t.rot||0),zr=Math.max(...zs)-Math.min(...zs),rr=Math.max(...rs)-Math.min(...rs);
+   if(zr<1.5||rr<5)m.push(`${tri[0].id}..: asker sırası (z farkı ${f1(zr)} m, açı farkı ${rr.toFixed(0)}°)`)}
+  res.push({name:'Organik çeşitlilik (anti copy-paste)',m});}
+ /* 6 meydan */
+ {const m=[];if(!fountain)m.push('Village_Fountain yok');else{
+   if(plaza&&plaza.pts&&!inPoly(fountain.x,fountain.z,plaza.pts))m.push('Çeşme meydanın dışında');
+   for(const l of objects.filter(l=>isRoadLike(l)&&l.pts&&!l.deck&&!isAccess(l))){const r=nearestOnPts(l.pts,fountain.x,fountain.z);if(r&&r.d<4)m.push(`${l.id} çeşmeye ${f1(r.d)} m yakın (en az 4 m)`)}
+   for(const id of ['Stall_A','Stall_B']){const s=by(id);if(s){const vx=fountain.x-s.x,vz=fountain.z-s.z,L=Math.hypot(vx,vz)||1,f=facingOf(s);if((f[0]*vx+f[1]*vz)/L<.5)m.push(id+' çeşmeye bakmıyor')}}}
+  res.push({name:'Meydan ve odak noktası',m});}
+ /* 7 çarpışma + erişim */
+ {const m=[];
+  for(let i=0;i<items.length;i++)for(let j=i+1;j<items.length;j++){const a=items[i],b=items[j];if(Math.hypot(a.x-b.x,a.z-b.z)>(Math.hypot(a.w,a.d)+Math.hypot(b.w,b.d))/2)continue;if(rectGapJS(a,b)<=0)m.push(`çarpışma: ${a.id} ↔ ${b.id}`)}
+  for(const o of items)if(o.kind==='building'&&o.type!=='mill'&&boundaryPts(o,.5).some(p=>Wt.wd(p.x,p.z)<-.05))m.push(o.id+' suyun içinde');
+  const solids=objects.filter(o=>(isItem(o)&&o.kind==='building')||o.type==='fountain'),ramps=objects.filter(o=>o.type==='pier'||o.type==='bridge').map(o=>o.type==='bridge'?{...o,w:o.w+6}:o);
+  let nb=0,nw=0;
+  for(const l of netLines()){const hs=(l.strokeW||2)/2;for(const p of sampleLine(l.pts,.5)){
+    if(!ramps.some(r=>rectDist(r,p.x,p.z)<=.05)&&Wt.wd(p.x,p.z)<0)nw++;
+    for(const o of solids){const R=Math.hypot(o.w,o.d)/2+hs+1;if(Math.abs(o.x-p.x)>R||Math.abs(o.z-p.z)>R)continue;if(rectDist(o,p.x,p.z)<hs-.02){nb++;break}}}}
+  if(nb)m.push(`yol-bina kesişimi: ${nb} örnek nokta`);if(nw)m.push(`yol-su kesişimi: ${nw} örnek nokta`);
+  const bad=[...connBad.keys()].filter(id=>TARGET_IDS.has(id));if(bad.length)m.push('yola bağlanmayan/kopuk: '+bad.slice(0,5).join(', '));
+  res.push({name:'Sıfır çarpışma + %100 erişim',m});}
+ return res;
+}
+function updateLint(){
+ const el=$('lint');if(!el)return;let res;try{res=lintAll()}catch(err){el.innerHTML='<small>Denetim hatası: '+esc(err.message)+'</small>';return}
+ const ok=res.filter(r=>!r.m.length).length;
+ el.innerHTML=`<b class="${ok===res.length?'stat-ok':'stat-bad'}">Tasarım Mantık Denetimi: ${ok} / ${res.length} Kural Geçti</b>`+res.map((r,i)=>`<div class="lint-row ${r.m.length?'bad':'ok'}"><span>${r.m.length?'✗':'✓'} ${i+1}. ${esc(r.name)}</span>${r.m.length?`<small>${esc(r.m.slice(0,3).join(' · '))}${r.m.length>3?' …':''}</small>`:''}</div>`).join('');
+}

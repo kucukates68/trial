@@ -269,6 +269,10 @@ def inject_html(src, dst, objects):
     _, end = json.JSONDecoder().raw_decode(txt[start:])
     blob = json.dumps(objects, ensure_ascii=False, separators=(',', ':'))
     out = txt[:start] + blob + txt[start + end:]
+    for o in objects:                       # palet şablonlarındaki ev ölçüleri de yeni ayak izleriyle eşleşsin
+        if o.get('type') == 'house' and 'w' in o:
+            out = re.sub(r'("id":"%s","label":"[^"]*","kind":"building","type":"house","w":)[\d.]+(,"d":)[\d.]+' % re.escape(o['id']),
+                         lambda mm, o=o: '%s%s%s%s' % (mm.group(1), o['w'], mm.group(2), o['d']), out)
     out = out.replace('__LAYOUT_VER__', '%08x' % (zlib.crc32(blob.encode('utf-8')) & 0xffffffff))
     open(dst, 'w', encoding='utf-8').write(out)
 
@@ -606,19 +610,41 @@ def densify_ring(pts, maxseg):
 # ==========================================================================
 # Başlangıç konum düzeltmeleri: (x, z). Açıklamalar README / rapor çıktısında.
 POSITION_TWEAKS = {
-    # liman sıraları: kordon (z~44.3) - arka sıra - servis sokağı (z~55) - ön sıra
-    'Dock_Build_01': (44, 60.5), 'Dock_Build_02': (54, 60.5), 'Dock_Build_03': (64, 60.5), 'Dock_Build_04': (74, 60.5),
-    'Dock_Build_05': (44, 49.5), 'Dock_Build_06': (55, 49.5), 'Dock_Build_07': (66, 49.5), 'Dock_Build_08': (77, 49.5),
-    'Market_Shop_08': (51, 69), 'Market_Shop_09': (39, 69), 'Boat_House_01': (30, 49.5), 'Boat_House_02': (78, 68.5),
+    # liman: ön sıra (kordon–arka sıra–servis sokağı–ön sıra) + hafif kademe (stagger)
+    'Dock_Build_01': (44, 61.8), 'Dock_Build_02': (54, 60.3), 'Dock_Build_03': (64, 61.2), 'Dock_Build_04': (74, 62.3),
+    'Dock_Build_05': (44, 49.0), 'Dock_Build_06': (55, 50.6), 'Dock_Build_07': (66, 49.4), 'Dock_Build_08': (77, 51.2),
+    'Market_Shop_08': (51, 69), 'Market_Shop_09': (39, 69),
+    # nalbant (M04) usta atölyesine yakın batı yakaya; sebze tezgâh evi (M11) onun yerine
+    'Market_Shop_04': (24, 86), 'Market_Shop_11': (59, 105),
     'W_House_06': (49, 162.5),
-    'E_House_02': (121, 176),
-    'E_House_14': (119, 117),
+    'E_House_02': (121, 178), 'E_House_03': (134, 172.5), 'E_House_14': (119, 117),
     'Stall_A': (40.5, 99.5), 'Stall_B': (53, 91.5),
+    # tarım kuşağı (z 75-110): iki sıra, aralarında bahçe yolu (z~93)
+    'Crop_Plot_01': (113, 103), 'Orchard_Plot': (133, 101.5), 'Crop_Plot_02': (113, 87), 'Crop_Plot_03': (128, 87),
+    # çiftlik kümesi: ahırlar + samanlık ortak avluya, otlak avlunun güneyinde
+    'Farm_Barn_01': (142, 89), 'Farm_Barn_02': (153, 90.5), 'Hay_Storage': (154, 79), 'Pasture_Area_01': (146, 64),
 }
+# sabit yön (derece) ve parsellerin kanonik ölçüsü: kümeler birbirine bakar
+FIXED_ROT_VALUES = {'Farm_Barn_01': 0, 'Farm_Barn_02': 0, 'Hay_Storage': -90, 'Pasture_Area_01': 180,
+                    'Crop_Plot_01': 0, 'Orchard_Plot': 0, 'Crop_Plot_02': 180, 'Crop_Plot_03': 180,
+                    'Boat_House_01': 0, 'Boat_House_02': 0, 'Watermill_01': -90}
+CANON_PARCEL = {'Crop_Plot_01': (14, 10), 'Crop_Plot_02': (14, 10), 'Crop_Plot_03': (12, 10),
+                'Pasture_Area_01': (25, 20), 'Orchard_Plot': (20, 14)}
+HOUSE_SIZES = [(5.2, 4.4), (5.8, 4.8), (6.2, 5.0), (4.8, 4.2), (5.5, 4.6)]   # gerçekçi Alp evi ayak izleri
+BOAT_X = {'Boat_House_01': 30, 'Boat_House_02': 19}                          # batı kıyı şeridi
+ROT_JITTER = ('house', 'dock', 'barn')                                      # ±5..15° doğal sapma
 PIER_X = [50, 62, 74, 86]
 BRIDGE_FIX = (21, -12)    # (genişlik boyu w, rot): 12 m'lik nehri her iki yanda >=2.5 m kıyı payıyla aşar
 FIXED_ROT = set()
-MILL_ROT = -90            # kapı batıya (sokağa), su çarkı doğuya (nehre) bakar
+WHEEL_DEPTH = 1.3         # su çarkı: değirmen ayak izi nehre en az bu kadar girer
+
+
+def shore_z(world, x):
+    """Verilen x'te göl kıyısının (kuzey kıyı) z değeri."""
+    for zz in [v / 10.0 for v in range(300, 520)]:
+        if not in_poly(x, zz, world.lpoly):
+            return zz
+    return 42.0
 
 
 def apply_tweaks(world, log):
@@ -634,29 +660,42 @@ def apply_tweaks(world, log):
         if (b['w'], b['rot']) != BRIDGE_FIX:
             log.append('köprü: %s w=%s rot=%s -> w=%s rot=%s' % ((b['id'], b['w'], b['rot']) + BRIDGE_FIX))
         b['w'], b['rot'] = BRIDGE_FIX
-    # su değirmeni: batı kıyısında, doğu yüzü suya değer (çark nehre bakar)
-    mill = next((o for o in world.objs if o.get('type') == 'mill'), None)
+    # parsel kanonik ölçüleri + sabit yönler
+    for k, (w, d) in CANON_PARCEL.items():
+        if k in by:
+            by[k]['w'], by[k]['d'] = w, d
+    for k, r in FIXED_ROT_VALUES.items():
+        if k in by:
+            by[k]['rot'] = r
+            FIXED_ROT.add(k)
+    # evler: gerçekçi, çeşitli ayak izleri
+    for o in world.objs:
+        if o.get('type') == 'house' and o.get('kind') == 'building':
+            o['w'], o['d'] = HOUSE_SIZES[int(seeded('size' + o['id']) * len(HOUSE_SIZES)) % len(HOUSE_SIZES)]
+    # kayık hangarları: batı göl kıyısı, cephe suya bakar, kıyıdan 3.8 m (kordon arada kalır)
+    for bid, x in BOAT_X.items():
+        o = by.get(bid)
+        if o:
+            o['x'], o['z'] = x, round(shore_z(world, x) + 3.8 + o['d'] / 2.0, 1)
+            log.append('kayık hangarı: %s -> (%.1f,%.1f) kıyı' % (bid, o['x'], o['z']))
+    # su değirmeni: batı kıyısında, ayak izinin doğu ucu nehre WHEEL_DEPTH kadar girer (çark suyun içinde)
+    mill = by.get('Watermill_01')
     if mill:
-        mill['rot'] = MILL_ROT
-        FIXED_ROT.add(mill['id'])
         mill['z'] = 171.0
         x = 38.0
-        while x < 60:
+        while x < 70:
             mill['x'] = x
             hw, hd = mill['w'] / 2, mill['d'] / 2
-            if min(world.water_dist(*world_xy(mill, lx, lz)) for lx in (-hw, hw) for lz in (-hd, hd, 0)) < 0.35:
+            depth = -min(world.river_edge_dist(*world_xy(mill, lx, lz)) for lx in (-hw, hw) for lz in (-hd, 0, hd))
+            if depth >= WHEEL_DEPTH:
                 break
             x += 0.1
-        mill['x'] = round(x - 0.1, 1)
-        log.append('değirmen: nehir kıyısına oturtuldu (%.1f,%.1f)' % (mill['x'], mill['z']))
+        mill['x'] = round(x, 1)
+        log.append('değirmen: çark nehre %.1f m girer (%.1f,%.1f)' % (depth, mill['x'], mill['z']))
     # iskeleler göl kıyısına otursun, nehir ağzından uzak kalsın
     piers = sorted(world.piers, key=lambda p: p['x'])
     for p, px in zip(piers, PIER_X):
-        shore = None
-        for zz in [v / 10.0 for v in range(300, 520)]:
-            if not in_poly(px, zz, world.lpoly):
-                shore = zz
-                break
+        shore = shore_z(world, px)
         newz = round(shore + 1.0 - p['d'] / 2.0, 1)
         if (p['x'], p['z']) != (px, newz):
             log.append('iskele: %s (%.1f,%.1f) -> (%.1f,%.1f)' % (p['id'], p['x'], p['z'], px, newz))
@@ -876,6 +915,11 @@ class Net:
         if pts is None:
             print('  ! rota bulunamadi:', sp['id'], file=sys.stderr)
             return None
+        if sp.get('optional') and not sp.get('closed'):
+            a, b = pts[0], pts[-1]
+            if poly_len(pts) > 2.0 * math.hypot(a[0] - b[0], a[1] - b[1]) + 4:
+                print('  ~ %s atlandi (dolambacli rota)' % sp['id'], file=sys.stderr)
+                return None
         if not sp.get('closed'):
             sn = sp.get('snap', (False, False))
             if sn[0]:
@@ -1008,8 +1052,9 @@ def build_specs(world, net):
     def L1(id_, label, wps, stroke=4.2, snap=(False, False)):
         S.append(dict(id=id_, label=label, lvl=1, wps=wps, stroke=stroke, snap=snap))
 
-    def L2(id_, label, wps, stroke=2.5, snap=(True, True), closed=False, hard=False):
-        S.append(dict(id=id_, label=label, lvl=2, wps=wps, stroke=stroke, snap=snap, closed=closed, hard=hard))
+    def L2(id_, label, wps, stroke=2.5, snap=(True, True), closed=False, hard=False, optional=False):
+        S.append(dict(id=id_, label=label, lvl=2, wps=wps, stroke=stroke, snap=snap, closed=closed, hard=hard,
+                      optional=optional))
 
     # Pazar çevre halkası ilk kurulur: ana yollar meydanın içinden değil halkadan bağlanır
     L2('Ring_Market', 'Pazar çevre halkası', ['D:' + i for i in ring], 2.8, snap=(False, False), closed=True, hard=True)
@@ -1028,8 +1073,7 @@ def build_specs(world, net):
        ['HUB_E', (104, 128), (103, 112), (101, 96), (99, 82), 'BE:Bridge_Lower'], 4.0)
     L1('Road_L1_East_North', 'Doğu üst mahalle kolu', ['HUB_E', (102, 152), (102, 168)], 3.8)
     L1('Road_L1_Farm_Trunk', 'Güneydoğu çiftlik ana yolu',
-       ['BE:Bridge_Lower', (106, 77.5), (122, 78.5), (136, 80), (141, 90), (141, 104), (142, 112)], 4.0)
-    L1('Road_L1_Pasture', 'Otlak servis yolu', [(138, 79.5), (141, 70), 'D:Pasture_Area_01'], 3.8, snap=(True, False))
+       ['BE:Bridge_Lower', (106, 77.5), (122, 78.5), (136, 79.5), (146, 80)], 4.0)
 
     # ---- Seviye 2: mahalle sokakları / ringler -----------------------------
     # Batı yamaç: eğime paralel teraslı sokaklar + zikzaklı patika
@@ -1043,12 +1087,13 @@ def build_specs(world, net):
     L2('Street_Market_North', 'Pazar kuzey sokağı', [(19, 123), (30, 127), (43, 128.5), (55, 127), (62, 124)])
     # Pazar çevresi halkası: dükkân kapılarından
     # Liman: sahil kordonu, servis sokağı, ara geçitler
+    L2('Promenade_West', 'Batı kıyı kordonu', [(38, 44.4), (30, 44.2), (21, 44.1), (13, 44.0)], 2.5)
     L2('Promenade_Pier', 'Sahil kordonu', [(38, 44.4), (50, 44.3), (62, 44.2), (74, 44.2), (86, 44.4), (88, 45.5)], 2.8)
     L2('Street_Dock_Service', 'Depo arka servis sokağı', [(38, 55.5), (50, 55.5), (62, 55.5), (74, 55.5), (84, 55.5)], 2.5)
     L2('Street_Dock_West', 'Liman batı bağlantısı', [(38, 55.5), (36.5, 50), (38, 44.4)], 2.5)
     L2('Street_Dock_East', 'Liman doğu bağlantısı', [(84, 55.5), (87, 50), (88, 45.5)], 2.5)
     for k, x in enumerate((49.8, 60.3, 71.8), 1):
-        L2('Alley_Dock_%d' % k, 'Depo arası geçit %d' % k, [(x, 55.5), (x, 44.3)], 2.2)
+        L2('Alley_Dock_%d' % k, 'Depo arası geçit %d' % k, [(x, 55.5), (x, 44.3)], 2.2, optional=True)
     # Doğu mahallesi: yeşil alanları saran döngüler
     L2('Street_East_Top', 'Doğu üst sokağı', [(102, 168), (114, 167), (126, 167), (138, 167), (145, 165)])
     L2('Loop_East_Upper', 'Üst ortak yeşil döngüsü', [(round(x, 1), round(z, 1)) for x, z in upper], 2.5,
@@ -1059,7 +1104,7 @@ def build_specs(world, net):
     L2('Street_East_LinkLower', 'Alt döngü bağlantısı', [(104, 128), (111, 129)])
     L2('Street_East_Mid', 'Doğu mahalle ara sokağı', [(137, 150), (146, 142), (148, 128), (147, 112)])
     L2('Street_East_South', 'Doğu alt sokağı', [(103, 111), (112, 109.7), (124, 109.7), (137, 109.7), (145, 110)])
-    L2('Lane_Farm_Garden', 'Bahçe ve çiftlik yolu', [(101, 95), (113, 94.5), (126, 94), (140, 92)])
+    L2('Lane_Farm_Garden', 'Bahçe ve çiftlik yolu', [(101, 95), (113, 93.3), (127, 93.3), (136, 93.3)])
     return S
 
 
@@ -1117,6 +1162,10 @@ def assign_rotations(world, net):
             nr = float(snap_deg(r, 90.0))
         else:
             nr = float(snap_deg(rot_from_facing(*f)))
+            if o.get('type') in ROT_JITTER:
+                u = seeded('rj' + o['id'])
+                nr += (1 if seeded('rs' + o['id']) < .5 else -1) * (5 + 10 * u)
+                nr = round(((nr + 180.0) % 360.0) - 180.0, 1)
         if nr != (o.get('rot') or 0):
             changed += 1
         o['rot'] = nr
@@ -1166,7 +1215,7 @@ def pull_in(world, net, log):
         if not ln:
             continue
         L = poly_len(ln['pts'])
-        if L <= MAX_L3 or o.get('type') in ('stall', 'shop', 'dock', 'boathouse'):
+        if L <= MAX_L3 or o['id'] in FIXED_ROT or o.get('type') in ('stall', 'shop', 'dock', 'boathouse'):
             continue
         a, b = ln['pts'][0], ln['pts'][-1]
         vx, vz = b[0] - a[0], b[1] - a[1]
@@ -1328,8 +1377,8 @@ def zone_type(world, cx, cz):
         return ('crop', '') if n > 0.9 else (('orchard', '') if n < -0.9 else ('pasture', ''))
     if lk < 16:
         return 'meadow', ''
-    if cx >= 100:                                             # doğu mahalle
-        return ('orchard', '') if n > 1.0 else (('crop', '') if n < -1.1 else ('meadow', ''))
+    if cx >= 100:                                             # doğu mahalle (ekin/meyve yok: kuzey yamaç gölgeli)
+        return ('courtyard', '') if n > 1.0 else (('forest', '') if n < -1.1 else ('meadow', ''))
     if cx < 70 and cz > 60:                                   # pazar çevresi
         return ('courtyard', '') if n > 1.2 else (('forest', '') if n < -1.3 else ('meadow', ''))
     return 'meadow', ''
@@ -1644,6 +1693,9 @@ def main():
     if a.preview:
         write_svg(a.preview, final, W, H)
 
+    import village_semantic_linter as _lint
+    lint_res = _lint.lint(final)
+
     print('\n== RAPOR ==', file=sys.stderr)
     for l in log:
         print('  ' + l, file=sys.stderr)
@@ -1655,6 +1707,7 @@ def main():
     print('yapı çakışması:', rep['item_overlap'], file=sys.stderr)
     print('bileşen sayısı:', rep['components'], 'kopuk:', rep['disconnected_lines'], file=sys.stderr)
     print('kapı sorunları:', rep['access_problem'], file=sys.stderr)
+    _lint.report(lint_res, sys.stderr)
     far = sorted(rep['l3_len'].items(), key=lambda kv: -kv[1])[:6]
     print('en uzun kapı patikaları:', far, file=sys.stderr)
 

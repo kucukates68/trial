@@ -3,7 +3,8 @@
 | Dosya | Ne işe yarar |
 |---|---|
 | `koy-vaziyet-atolyesi.html` | Güncellenmiş editör. 56 yapı, yeni yol ağı ve doldurulmuş alanlar `DEFAULT_OBJECTS` içine gömülü; tarayıcıda açman yeter. |
-| `village_network_generator.py` | Yol/alan üreticisi (yalnız standart kütüphane, Python ≥ 3.9). |
+| `village_network_generator.py` | Yol/alan üreticisi (yalnız standart kütüphane, Python ≥ 3.9). Sonunda denetçiyi çalıştırıp raporu yazar. |
+| `village_semantic_linter.py` | **Köy Mantık Denetimcisi**: 7 kural; `python3 village_semantic_linter.py koy-yerlesim-koordinatlari.json` (çıkış kodu = kalan kural sayısı). Aynı kurallar editörde canlı çalışır. |
 | `koy-yerlesim-koordinatlari.json` | Üreticinin çıktısı; editörde “JSON yükle” ile açılır. |
 | `onizleme.svg` | Aynı yerleşimin statik önizlemesi. |
 | `tools/patch_html_editor.py`, `tools/editor_block.js` | Orijinal HTML'e üç “yol mantığı” özelliğini ekleyen yama. |
@@ -42,3 +43,26 @@ Tüm ID'ler ve türler korunur (56/56). Konum değişenler üretici çıktısın
 3. **Bağlantı denetimi**: sağ panelde “Yol bağlantısı olmayan bina: X / 56”. Kapısı yola 3 m'den uzak **veya** ana ağdan kopuk yapı kırmızı çerçeve alır.
 
 Not: HTML içinde bir yerleşim sürüm damgası (`LAYOUT_VER`) vardır; tarayıcıda kayıtlı taslak başka sürümdense yeni yerleşim açılır ve eski taslak `village-layout-studio-v3-yedek` anahtarına yedeklenir.
+
+## Tasarım Mantık Denetimi (7 kural) — v6 durumu: 7 / 7
+
+| # | Kural | Eşik |
+|---|---|---|
+| 1 | Su kıyısı | Kayık hangarları kıyıdan ≤ 4 m, cephe suya dönük; su değirmeni çarkı nehre ≥ 1,0 m girer |
+| 2 | Çiftlik bütünlüğü | Samanlık ahıra ≤ 18 m; otlak göle ≥ 12 m, ahıra ≤ 15 m |
+| 3 | Tarım coğrafyası | Ekin/meyve parselleri z 52–165 ve birbirine komşu; z>140 / z<52 dolgularında ekin/meyve yok |
+| 4 | Zanaat/liman | Nalbant (M04) atölyeye ≤ 30 m; M06/M09/M10 pazarın güney yarısında |
+| 5 | Çeşitlilik | Evler ≥ 4,6×4,0 m, ≥ 3 ölçü türü; ardışık 3'lüde z farkı ≥ 1,5 m ve açı farkı ≥ 5° |
+| 6 | Meydan | Çeşme meydanda; L1/L2 çeşmeye ≥ 4 m; tezgâhlar çeşmeye bakar |
+| 7 | Çarpışma + erişim | bina-bina / bina-su / yol-bina / yol-su = 0; tek bağlı ağ; 56/56 kapı patikası ağa değer (değirmen, çarkı gereği bina-su kuralında muaf) |
+
+Editörde sağ panelde “Tasarım Mantık Denetimi: X / 7 Kural Geçti” kutusu canlı güncellenir (✓ / ✗ + ilk 3 uyarı).
+
+### v6 yerleşim değişiklikleri
+- **Çiftlik kümesi** güneydoğuda: `Farm_Barn_01/02` ve `Hay_Storage` ortak avluya bakar, `Pasture_Area_01` avlunun güneyinde (göle ≥ 12 m).
+- **Tarım kuşağı** z 82–109: iki sıra (ekinler + meyve bahçesi), arada bahçe yolu; göl kıyısı doğal çayır.
+- **Kayık hangarları** batı kıyıda, cephe göle bakar, önlerinden `Promenade_West` kıyı kordonu geçer.
+- **Su değirmeni** (48,8; 171): çarkı nehre ~1,4 m girer.
+- **Nalbant (M04)** atölyeye yakın batı yakaya, `Market_Shop_11` onun yerine kuzeydoğuya geçti.
+- **Evler** 5 farklı ölçü (4,8×4,2 … 6,2×5,0 m); ev/liman/ahır açıları ±5–15° doğal sapmalı; liman ve ev sıraları kademeli (stagger).
+- Doğu mahalle ve kuzey dolgularında ekin/meyve yok; kuzey vadi tek parça çayır/orman.
