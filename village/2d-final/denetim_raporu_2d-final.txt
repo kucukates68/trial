@@ -1,0 +1,31 @@
+### village_semantic_linter.py (7 kural)
+Tasarım Mantık Denetimi: 7 / 7 kural geçti
+  GEÇTİ 1. Su kıyısı zorunluluğu
+  GEÇTİ 2. Çiftlik ve hayvancılık bütünlüğü
+  GEÇTİ 3. Tarım ve coğrafya uyumu
+  GEÇTİ 4. Zanaat ve liman komşuluğu
+  GEÇTİ 5. Organik çeşitlilik (anti copy-paste)
+  GEÇTİ 6. Meydan ve odak noktası
+  GEÇTİ 7. Sıfır çarpışma + %100 erişim
+
+### village_access_audit.py (sıkı erişim)
+== SIKI ERİŞİM DENETİMİ ==
+GERÇEK BİNA KAPILARI: 51 / 51 erişilebilir
+   kapı patikası uzunluğu: ort 3.1 m, en uzun 12.4 m
+PARSEL GİRİŞLERİ (ekin/otlak/bahçe): 5 / 5 erişilebilir
+   kapı patikası uzunluğu: ort 2.2 m, en uzun 4.8 m
+çizgi grafı: 88 çizgi, köy girişinden ulaşılan 88
+serbest uçlar (L1/L2 ucu başka çizgiye değmiyor): 1  -> bunlardan GERÇEK ölü uç: 0
+   - Road_L1_Arrival baş (7.0, 196.0)  [GİRİŞ KAPISI (tasarım)]
+köprü olmadan doğu yakadan ulaşılamayan L1/L2 çizgi sayısı: 9
+-- yan yana binen çizgiler (>=10 m boyunca 1,8 m içinde; kavşak yaklaşımı dahil)
+   Promenade_Pier ~ Street_Dock_Service : 26 m
+   Promenade_Pier ~ Street_Dock_West : 16 m
+   Street_East_South ~ Street_East_Mid : 19 m
+-- orman poligonu içinden geçen yol uzunluğu (>2 m)
+   Road_L1_Arrival : 4 m
+-- köprü ağızlarına (6 m) değen non-deck çizgi sayısı
+   Bridge_Upper (60,134): ['Road_L1_Market_UpperBridge', 'Path_West_Riverbank']
+   Bridge_Upper (80,130): ['Road_L1_East_Upper']
+   Bridge_Lower (78,79): ['Road_L1_Market_LowerBridge']
+   Bridge_Lower (98,75): ['Road_L1_East_Trunk']
