@@ -269,6 +269,7 @@ def inject_html(src, dst, objects):
     _, end = json.JSONDecoder().raw_decode(txt[start:])
     blob = json.dumps(objects, ensure_ascii=False, separators=(',', ':'))
     out = txt[:start] + blob + txt[start + end:]
+    out = out.replace('__LAYOUT_VER__', '%08x' % (zlib.crc32(blob.encode('utf-8')) & 0xffffffff))
     open(dst, 'w', encoding='utf-8').write(out)
 
 

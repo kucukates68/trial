@@ -41,4 +41,4 @@ Tüm ID'ler ve türler korunur (56/56). Konum değişenler üretici çıktısın
 2. **Kapı yönü + snap**: her yapıda turuncu eşik/ok kapının yönünü gösterir. Yol/patika çizerken (ve düğüm sürüklerken) imleç yol düğümüne (yeşil), bina kapısına (turuncu), yol kenarına (mavi) 2,5 m içinde yapışır.
 3. **Bağlantı denetimi**: sağ panelde “Yol bağlantısı olmayan bina: X / 56”. Kapısı yola 3 m'den uzak **veya** ana ağdan kopuk yapı kırmızı çerçeve alır.
 
-Not: kayıt anahtarı `village-layout-studio-v3` olarak değişti; tarayıcıda kayıtlı eski (v2) taslak yeni haritanın üstüne binmez. İstersen eski taslağı “JSON indir / JSON yükle” ile taşıyabilirsin.
+Not: HTML içinde bir yerleşim sürüm damgası (`LAYOUT_VER`) vardır; tarayıcıda kayıtlı taslak başka sürümdense yeni yerleşim açılır ve eski taslak `village-layout-studio-v3-yedek` anahtarına yedeklenir.

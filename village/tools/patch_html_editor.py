@@ -31,6 +31,9 @@ rep('<button id="applySize">Harita ölçüsünü uygula</button>',
 
 # --- depolama anahtarı (yeni ağ eski taslağın üstüne binmesin) -------------------
 rep("STORAGE='village-layout-studio-v2'", "STORAGE='village-layout-studio-v3'")
+# yerleşim sürümü: kayıtlı taslak başka sürümden ise yeni varsayılan yerleşim açılır (eski taslak yedeklenir)
+rep("STORAGE='village-layout-studio-v3'", "STORAGE='village-layout-studio-v3',LAYOUT_VER='__LAYOUT_VER__'")
+rep("localStorage.setItem(STORAGE,JSON.stringify({mapW,mapH,objects}))", "localStorage.setItem(STORAGE,JSON.stringify({mapW,mapH,objects,ver:LAYOUT_VER}))")
 
 # --- editör bloğu ------------------------------------------------------------
 rep('palette();\ntry{const saved=localStorage.getItem(STORAGE)', block + "\n$('autoRoute').addEventListener('click',()=>refreshAll($('autoAlign').checked));\npalette();\ntry{const saved=localStorage.getItem(STORAGE)")
@@ -38,7 +41,7 @@ rep('palette();\ntry{const saved=localStorage.getItem(STORAGE)', block + "\n$('a
 # başlangıç yükleme: eski göç kodunu sadeleştir
 a = t.index("try{const saved=localStorage.getItem(STORAGE)")
 b = t.index("\n})();\n</script>")
-t = t[:a] + ("try{const saved=localStorage.getItem(STORAGE);if(saved)loadState(JSON.parse(saved));else{objects=JSON.parse(JSON.stringify(DEFAULT_OBJECTS));render();persist()}}"
+t = t[:a] + ("try{const saved=localStorage.getItem(STORAGE);const sv=saved&&JSON.parse(saved);if(sv&&sv.ver===LAYOUT_VER)loadState(sv);else{if(saved)try{localStorage.setItem(STORAGE+'-yedek',saved)}catch{}objects=JSON.parse(JSON.stringify(DEFAULT_OBJECTS));render();persist()}}"
              "catch{objects=JSON.parse(JSON.stringify(DEFAULT_OBJECTS));render()}") + t[b:]
 
 # --- loadState: uid garanti -----------------------------------------------------
