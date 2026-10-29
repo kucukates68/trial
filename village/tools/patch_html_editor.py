@@ -70,6 +70,11 @@ rep(" s+=`</g><text x=\"${x}\" y=\"${y+3}\" text-anchor=\"middle\" class=\"map-i
 # alan etiketi: etiket boşsa (üretilmiş bahçe/orman parçaları) hiçbir şey yazma
 rep("class=\"map-label\">${esc(o.label)}${o.elevation?` · ${o.elevation}m`:''}</text>", "class=\"map-label\">${o.label?esc(o.label)+(o.elevation?` · ${o.elevation}m`:''):''}</text>")
 
+# köy çeşmesi: palet + renk
+rep('{"id":"Market_Plaza_Stamp","label":"Meydan / avlu","kind":"area","type":"plaza","w":20,"d":20}',
+    '{"id":"Market_Plaza_Stamp","label":"Meydan / avlu","kind":"area","type":"plaza","w":20,"d":20},{"id":"Village_Fountain","label":"Köy çeşmesi","kind":"utility","type":"fountain","w":4,"d":4}')
+rep("else if(o.kind==='utility'){fill='#91a4a2';edge='#506965'}", "else if(o.kind==='utility'){fill=o.type==='fountain'?'#7fc4cf':'#91a4a2';edge=o.type==='fountain'?'#2f7f8c':'#506965'}")
+
 # --- istatistik ------------------------------------------------------------------
 rep("$('stats').innerHTML=`<b>Yerleştirme özeti</b><div><span>56 öğelik listeden yerleşen</span><strong>${placedTarget} / ${target.length}</strong></div>",
     "const badN=[...connBad.keys()].filter(id=>TARGET_IDS.has(id)).length,lv={1:0,2:0,3:0};for(const o of objects)if(o.kind==='path'&&lv[o.lvl]!==undefined)lv[o.lvl]++;"

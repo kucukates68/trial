@@ -15,11 +15,12 @@ Yeniden üretmek: `./build.sh` · yalnız üretici: `python3 village_network_gen
 
 ## Üreticinin yaptığı
 
+0. **Pazar**: meydanın içi yaya alanıdır ve ortasında `Village_Fountain` (köy çeşmesi) vardır; ana yollar meydandan değil `Ring_Market` halkasından bağlanır.
 1. **Maliyet ızgarası (1×1 m)**: bina taban alanları (döndürülmüş dikdörtgene tam mesafe), göl, nehir, parseller. Yol sınıfına göre güvenlik payı: L1 2,5 m · L2 1,6 m · L3 0,9 m (+ planlama payı). Nehir geçilemez; köprü/iskele tabanı ve kıyıya inen 3 m'lik rampa geçilebilir ⇒ batı↔doğu geçişi **yalnız `Bridge_Upper` / `Bridge_Lower` uçlarından** olur.
 2. **Kapı düğümü**: cephenin 1,5 m dışı (`rot` dikkate alınır; `rot=0` ⇒ kapı güneye bakar; parsellerde 1,2 m “giriş”).
 3. **Hiyerarşi**: L1 `road` (3,8–4,5 m) → L2 `path` (2,2–2,8 m) → L3 `path` (1,2 m, `Access_<id>`, `forId` alanlı). Rotalar A\* / Dijkstra → görüş-hattı sadeleştirme → **Chaikin** köşe kesme; yumuşatılmış hat tekrar çarpışma testinden geçer, geçemezse daha az yumuşatılır.
 4. **Yön optimizasyonu**: binalar en yakın sokağa paralel döner (pazar yapıları meydana bakar); L3'ü 9 m'den uzun kalan evler/ahırlar (dükkân ve liman yapıları hariç) en çok 6 m yaklaştırılır. Parseller 90° adımlarla döner (`w`/`d` yer değiştirir, ayak izi aynı kalır).
-5. **Boş alan doldurucu**: her yapıya bahçe/avlu (`courtyard`/`meadow`), kalan ölü hücreler en-büyük-dikdörtgen yöntemiyle orman · teras · çayır · ekin · otlak · meyve bahçesi. Ölü alan 11.669 m² → 2.084 m² (harita 32.000 m²); kalan, küçük ve dar artıklardır.
+5. **Boş alan doldurucu**: yapıların arkasına bitişik bahçe/avlu (`courtyard`/`meadow`, 22 adet); kalan ölü hücreler tür+bölgeye göre birleştirilip tek parça, yumuşatılmış organik poligonlara dönüşür (84 adet: nehir kıyısı çayırı, kuzey Alp çayırı, dağ ormanı, teras, ekin/otlak/meyve). Ölü alan 11.725 m² → 372 m²; toplam öğe 268.
 
 ## Üretici doğrulaması (her çalıştırmada yazdırılır)
 
@@ -32,7 +33,7 @@ Tüm ID'ler ve türler korunur (56/56). Konum değişenler üretici çıktısın
 - **Köprüler**: merkezler aynı; boy 18/14 m → 21 m, yön −25° → −12°. Eski Alt köprü nehri aşamıyordu (batı ucu suyun içinde kalıyordu).
 - **İskeleler**: göl kıyısına oturtuldu; İskele 4 nehir ağzındaydı → x = 50 / 62 / 74 / 86.
 - **Liman**: yapı sıraları z = 60,5 ve 49,5'e alındı (kordon – arka sıra – servis sokağı – ön sıra sığsın diye). `Market_Shop_08/09`, `Boat_House_01/02` buna göre kaydı; `Boat_House_01` batı kıyıya taşındı.
-- Pazar: `Stall_A/B` meydan çaprazını boş bırakacak köşelere; `Watermill_01` nehre biraz yaklaştı; `W_House_06`, `E_House_02`, `E_House_14` sokağa oturtuldu.
+- Pazar: `Stall_A/B` meydan çaprazını boş bırakacak köşelere; `Watermill_01` nehrin batı kıyısına oturdu (doğu yüzü suya değer, kapı batıya bakar); `W_House_06`, `E_House_02`, `E_House_14` sokağa oturtuldu.
 
 ## Editördeki yeni özellikler
 

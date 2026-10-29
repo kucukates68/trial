@@ -304,6 +304,7 @@ class World:
         self.lpoly = [(p['x'], p['z']) for p in self.lake['pts']]
         self.bridges = {o['id']: o for o in objs if o.get('type') == 'bridge'}
         self.piers = [o for o in objs if o.get('type') == 'pier']
+        self.fountains = [o for o in objs if o.get('type') == 'fountain']
         self.static_areas = [o for o in objs if o.get('kind') == 'area' and 'pts' in o]
         self._pas = {}
         self.compute_fields()
@@ -335,8 +336,8 @@ class World:
         self.wd = [99.0] * N      # suya mesafe (nehir kenarı / göl kıyısı)
         self.ov = bytearray(N)    # köprü / iskele tabanı
         self.soft = [1.0] * N
-        for o in self.items:
-            arr = self.bd if o['kind'] == 'building' else self.pd
+        for o in self.items + self.fountains:
+            arr = self.bd if o['kind'] in ('building', 'utility') else self.pd
             for i, j in self.rect_cells(o, 8):
                 d = rect_dist(o, i + .5, j + .5)
                 idx = j * W + i
@@ -386,7 +387,7 @@ class World:
     # -- ham mesafe sorgusu (kesin) -----------------------------------------
     def exact_bd(self, x, z):
         best = 99.0
-        for o in self.bld:
+        for o in self.bld + self.fountains:
             r = math.hypot(o['w'], o['d']) / 2
             if abs(o['x'] - x) - r > best or abs(o['z'] - z) - r > best:
                 continue
@@ -608,15 +609,15 @@ POSITION_TWEAKS = {
     'Dock_Build_01': (44, 60.5), 'Dock_Build_02': (54, 60.5), 'Dock_Build_03': (64, 60.5), 'Dock_Build_04': (74, 60.5),
     'Dock_Build_05': (44, 49.5), 'Dock_Build_06': (55, 49.5), 'Dock_Build_07': (66, 49.5), 'Dock_Build_08': (77, 49.5),
     'Market_Shop_08': (51, 69), 'Market_Shop_09': (39, 69), 'Boat_House_01': (30, 49.5), 'Boat_House_02': (78, 68.5),
-    'Watermill_01': (45.5, 171),          # nehir kıyısına yakın
-    'W_House_06': (50, 165.5),
+    'W_House_06': (49, 162.5),
     'E_House_02': (121, 176),
     'E_House_14': (119, 117),
-    'Stall_A': (42.5, 101.5), 'Stall_B': (51.5, 90),
+    'Stall_A': (40.5, 99.5), 'Stall_B': (53, 91.5),
 }
 PIER_X = [50, 62, 74, 86]
 BRIDGE_FIX = (21, -12)    # (genişlik boyu w, rot): 12 m'lik nehri her iki yanda >=2.5 m kıyı payıyla aşar
 FIXED_ROT = set()
+MILL_ROT = -90            # kapı batıya (sokağa), su çarkı doğuya (nehre) bakar
 
 
 def apply_tweaks(world, log):
@@ -632,6 +633,21 @@ def apply_tweaks(world, log):
         if (b['w'], b['rot']) != BRIDGE_FIX:
             log.append('köprü: %s w=%s rot=%s -> w=%s rot=%s' % ((b['id'], b['w'], b['rot']) + BRIDGE_FIX))
         b['w'], b['rot'] = BRIDGE_FIX
+    # su değirmeni: batı kıyısında, doğu yüzü suya değer (çark nehre bakar)
+    mill = next((o for o in world.objs if o.get('type') == 'mill'), None)
+    if mill:
+        mill['rot'] = MILL_ROT
+        FIXED_ROT.add(mill['id'])
+        mill['z'] = 171.0
+        x = 38.0
+        while x < 60:
+            mill['x'] = x
+            hw, hd = mill['w'] / 2, mill['d'] / 2
+            if min(world.water_dist(*world_xy(mill, lx, lz)) for lx in (-hw, hw) for lz in (-hd, hd, 0)) < 0.35:
+                break
+            x += 0.1
+        mill['x'] = round(x - 0.1, 1)
+        log.append('değirmen: nehir kıyısına oturtuldu (%.1f,%.1f)' % (mill['x'], mill['z']))
     # iskeleler göl kıyısına otursun, nehir ağzından uzak kalsın
     piers = sorted(world.piers, key=lambda p: p['x'])
     for p, px in zip(piers, PIER_X):
@@ -756,6 +772,12 @@ class Net:
         if tok in self.anchors:
             return self.anchors[tok]
         kind, _, arg = tok.partition(':')
+        if kind == 'ON':
+            lid, _, xy = arg.partition(':')
+            x, z = (float(v) for v in xy.split(','))
+            ln = next(l for l in self.lines if l['id'] == lid)
+            r = nearest_on_poly(ln['pts'], x, z)
+            return (r[1], r[2])
         if kind == 'D':
             o = self.byid[arg]
             return door_node(o, (GATE_OFF if is_parcel(o) else DOOR_OFF) + 0.8)
@@ -988,13 +1010,18 @@ def build_specs(world, net):
     def L2(id_, label, wps, stroke=2.5, snap=(True, True), closed=False, hard=False):
         S.append(dict(id=id_, label=label, lvl=2, wps=wps, stroke=stroke, snap=snap, closed=closed, hard=hard))
 
-    # ---- Seviye 1: ana arterler --------------------------------------------
+    # Pazar çevre halkası ilk kurulur: ana yollar meydanın içinden değil halkadan bağlanır
+    L2('Ring_Market', 'Pazar çevre halkası', ['D:' + i for i in ring], 2.8, snap=(False, False), closed=True, hard=True)
+
+    # ---- Seviye 1: ana arterler (meydan içi yaya alanı + çeşme; yollar halkaya biner) ----
     L1('Road_L1_Arrival', 'Kuzeybatı dağ yolu', [(7, 196), (8, 181), (10, 165), (14, 150), (19, 137), (19, 122),
-                                                  (17, 110), (18, 100), (30, 97), 'PC'], 4.5)
-    L1('Road_L1_Market_UpperBridge', 'Meydan–üst köprü yolu', ['PC', 'BW:Bridge_Upper'], 4.2)
-    L1('Road_L1_Market_LowerBridge', 'Meydan–alt köprü yolu', ['PC', (60, 89), (72, 85), 'BW:Bridge_Lower'], 4.2)
+                                                  (17, 110), (18, 100), 'ON:Ring_Market:30,97'], 4.5)
+    L1('Road_L1_Market_UpperBridge', 'Meydan–üst köprü yolu',
+       ['ON:Ring_Market:56,108', (59, 117), (61, 127), 'BW:Bridge_Upper'], 4.2)
+    L1('Road_L1_Market_LowerBridge', 'Meydan–alt köprü yolu',
+       ['ON:Ring_Market:62,90', (70, 86), 'BW:Bridge_Lower'], 4.2)
     L1('Road_L1_Market_Harbor', 'Pazar–liman ana ticaret yolu',
-       ['PC', (41, 90), (34, 82), (32, 72), (34, 62), (38, 56), 'FA_W'], 4.2)
+       ['ON:Ring_Market:33,78', (33, 70), (34, 62), (38, 56), 'FA_W'], 4.2)
     L1('Road_L1_East_Upper', 'Üst köprü–doğu mahalle yolu', ['BE:Bridge_Upper', (91, 137), 'HUB_E'], 4.0)
     L1('Road_L1_East_Trunk', 'Doğu mahalle servis yolu',
        ['HUB_E', (104, 128), (103, 112), (101, 96), (99, 82), 'BE:Bridge_Lower'], 4.0)
@@ -1014,7 +1041,6 @@ def build_specs(world, net):
                                                          'BW:Bridge_Upper'], 2.2, snap=(True, False))
     L2('Street_Market_North', 'Pazar kuzey sokağı', [(19, 123), (30, 127), (43, 128.5), (55, 127), (62, 124)])
     # Pazar çevresi halkası: dükkân kapılarından
-    L2('Ring_Market', 'Pazar çevre halkası', ['D:' + i for i in ring], 2.8, snap=(False, False), closed=True, hard=True)
     # Liman: sahil kordonu, servis sokağı, ara geçitler
     L2('Promenade_Pier', 'Sahil kordonu', [(38, 44.4), (50, 44.3), (62, 44.2), (74, 44.2), (86, 44.4), (88, 45.5)], 2.8)
     L2('Street_Dock_Service', 'Depo arka servis sokağı', [(38, 55.5), (50, 55.5), (62, 55.5), (74, 55.5), (84, 55.5)], 2.5)
@@ -1225,8 +1251,8 @@ def make_gardens(world, net, rd, statics):
         w, d = o['w'], o['d']
         done = None
         for side in ('back', 'left', 'right'):
-            for depth in (min(6.0, d * 1.3 + 2.5), 4.5, 3.4, 2.6):
-                for sc in (1.0, 0.8, 0.62):
+            for depth in (min(6.0, d * 1.3 + 2.5), 4.5, 3.4, 2.6, 1.9):
+                for sc in (1.0, 0.8, 0.62, 0.45):
                     pad = 1.0 * sc
                     if side == 'back':
                         loc = [(-w / 2 - pad, d / 2 + 0.3), (w / 2 + pad, d / 2 + 0.3),
@@ -1274,90 +1300,154 @@ def coverage_mask(world, net, areas):
     return cov, rd
 
 
-def largest_rect(mask, W, H, minw, minh):
-    best = (0, 0, 0, 0, 0)
-    heights = [0] * W
-    for j in range(H):
-        base = j * W
-        for i in range(W):
-            heights[i] = heights[i] + 1 if mask[base + i] else 0
-        stack = []
-        for i in range(W + 1):
-            cur = heights[i] if i < W else 0
-            start = i
-            while stack and stack[-1][1] >= cur:
-                s, h = stack.pop()
-                w = i - s
-                if h >= minh and w >= minw and w * h > best[0]:
-                    best = (w * h, s, j - h + 1, w, h)
-                start = s
-            stack.append((start, cur))
-    return best if best[0] else None
+ZONE_LABELS = {'kuzey_cayir': 'Kuzey Alp çayırı', 'kuzey_orman': 'Kuzey dağ ormanı',
+               'nehir_cayir': 'Nehir kıyısı çayırı', 'bati_orman': 'Batı yamaç ormanı'}
 
 
-def classify_fill(world, net, i0, j0, w, h, n):
-    cx, cz = i0 + w / 2.0, j0 + h / 2.0
+def zone_type(world, cx, cz):
+    """Hücre merkezi -> (tür, bölge adı). Düşük frekanslı gürültü: sınırlar organik, bölgeler büyük."""
     rv = world.river_edge_dist(cx, cz)
     lk = world.lake_signed(cx, cz)
-    rnd = seeded('fill%d_%d_%d' % (i0, j0, n))
-    if cz > 188 or cx < 16 or (cx > 148 and cz > 150):
-        return 'forest'
-    if rv < 9 and cx < 95:
-        return 'forest' if rnd < 0.62 else 'terrace'
-    if cx < 62 and 128 < cz < 195:
-        return 'terrace' if rnd < 0.5 else ('forest' if rnd < 0.8 else 'meadow')
-    if cx >= 100 and cz < 118:
+    n = math.sin(cx * 0.11 + 1.7) + math.cos(cz * 0.09 + 0.4) + math.sin((cx + cz) * 0.05)
+    if cz > 188:
+        return 'forest', 'kuzey_orman'
+    if cx < 16:
+        return 'forest', 'bati_orman'
+    if cx > 148 and cz > 150:
+        return 'forest', ''
+    if 62 < cx < 100 and 138 < cz < 190 and rv > 1:          # nehir ile doğu mahalle arası vadi
+        return ('forest', 'kuzey_orman') if cz > 181 else ('meadow', 'kuzey_cayir')
+    if rv < 6 and cx < 95:
+        return ('forest', '') if (n > 1.0 and cz > 140) else ('meadow', 'nehir_cayir')
+    if cx < 62 and 128 < cz < 195:                            # batı yamaç
+        return ('terrace', '') if n > 0.4 else (('forest', '') if n < -1.0 else ('meadow', ''))
+    if cx >= 100 and cz < 118:                                # çiftlik
         if lk < 14:
-            return 'meadow'
-        return 'crop' if rnd < 0.34 else ('pasture' if rnd < 0.7 else 'orchard')
+            return 'meadow', ''
+        return ('crop', '') if n > 0.9 else (('orchard', '') if n < -0.9 else ('pasture', ''))
     if lk < 16:
-        return 'meadow'
-    nr = net.nearest_l12(cx, cz)
-    if nr and nr[0] < 7 and nr[5]['lvl'] == 1 and w * h < 70 and rnd < 0.6:
-        return 'forest'
-    if cx >= 100:                                   # doğu mahalle: bahçe, meyve, sebze, ağaç kümeleri
-        if cx > 140 and cz > 150:
-            return 'forest'
-        return ('orchard' if rnd < 0.3 else 'crop' if rnd < 0.48 else 'forest' if rnd < 0.62 else
-                'courtyard' if rnd < 0.72 else 'meadow')
-    if cx < 70 and cz > 80:                         # pazar çevresi: avlu / çayır / ağaç
-        return 'courtyard' if rnd < 0.3 else ('forest' if rnd < 0.5 else 'meadow')
-    return 'meadow'
+        return 'meadow', ''
+    if cx >= 100:                                             # doğu mahalle
+        return ('orchard', '') if n > 1.0 else (('crop', '') if n < -1.1 else ('meadow', ''))
+    if cx < 70 and cz > 60:                                   # pazar çevresi
+        return ('courtyard', '') if n > 1.2 else (('forest', '') if n < -1.3 else ('meadow', ''))
+    return 'meadow', ''
 
 
-def fill_dead(world, net, cov, rd, maxw=16, maxh=12, min_area=14):
+def _components(cells_by_type):
+    """{(i,j): tür} -> [(tür, [hücre...])] (4-komşuluk, aynı tür)."""
+    seen, out = set(), []
+    for c, ty in cells_by_type.items():
+        if c in seen:
+            continue
+        st, comp = [c], []
+        seen.add(c)
+        while st:
+            i, j = st.pop()
+            comp.append((i, j))
+            for d in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+                nb = (i + d[0], j + d[1])
+                if nb not in seen and cells_by_type.get(nb) == ty:
+                    seen.add(nb)
+                    st.append(nb)
+        out.append((ty, comp))
+    return out
+
+
+def _trace_outer(cells):
+    S = set(cells)
+    edges = {}
+
+    def add(a, b):
+        edges.setdefault(a, []).append(b)
+    for (i, j) in S:
+        if (i, j - 1) not in S:
+            add((i, j), (i + 1, j))
+        if (i + 1, j) not in S:
+            add((i + 1, j), (i + 1, j + 1))
+        if (i, j + 1) not in S:
+            add((i + 1, j + 1), (i, j + 1))
+        if (i - 1, j) not in S:
+            add((i, j + 1), (i, j))
+    loops = []
+    while edges:
+        start = next(iter(edges))
+        loop, cur = [start], start
+        while True:
+            outs = edges.get(cur)
+            if not outs:
+                break
+            nxt = outs.pop()
+            if not outs:
+                del edges[cur]
+            if nxt == start:
+                break
+            loop.append(nxt)
+            cur = nxt
+        if len(loop) >= 3:
+            loops.append(loop)
+
+    def sarea(lp):
+        return 0.5 * sum(lp[k][0] * lp[(k + 1) % len(lp)][1] - lp[(k + 1) % len(lp)][0] * lp[k][1] for k in range(len(lp)))
+    return max(loops, key=lambda lp: abs(sarea(lp))) if loops else None
+
+
+def _rdp(pts, tol):
+    if len(pts) < 3:
+        return pts
+    a, b = pts[0], pts[-1]
+    dmax, k = 0.0, 0
+    for i in range(1, len(pts) - 1):
+        d = seg_closest(pts[i][0], pts[i][1], a[0], a[1], b[0], b[1])[3]
+        if d > dmax:
+            dmax, k = d, i
+    if dmax > tol:
+        return _rdp(pts[:k + 1], tol)[:-1] + _rdp(pts[k:], tol)
+    return [a, b]
+
+
+def fill_regions(world, net, cov, min_cells=5):
+    """Ölü hücreleri tür/bölgeye göre birleştirip tek parça, yumuşatılmış poligonlar üretir."""
     W, H = world.W, world.H
-    mask = bytearray(W * H)
-    for idx in range(W * H):
-        mask[idx] = 0 if cov[idx] else 1
-    out = []
-    n = 0
-    stage = 0
-    while True:
-        r = largest_rect(mask, W, H, 3 if stage == 0 else 2, 3 if stage == 0 else 2)
-        if not r or r[0] < (min_area if stage == 0 else 6):
-            if stage == 0:
-                stage = 1
+    typ, zone = {}, {}
+    for j in range(H):
+        for i in range(W):
+            if not cov[j * W + i]:
+                typ[(i, j)], zone[(i, j)] = zone_type(world, i + .5, j + .5)
+    for _ in range(3):                                         # küçük parçaları komşu türe kat
+        for ty, comp in _components(typ):
+            if len(comp) >= 8:
                 continue
-            break
-        _, i0, j0, w, h = r
-        w2, h2 = min(w, maxw), min(h, maxh)
-        for jj in range(h2):
-            for ii in range(w2):
-                mask[(j0 + jj) * W + i0 + ii] = 0
-        typ = classify_fill(world, net, i0, j0, w2, h2, n)
-        n += 1
-        x0, x1, z0, z1 = i0 + 0.25, i0 + w2 - 0.25, j0 + 0.25, j0 + h2 - 0.25
-        ch = min(1.0, (x1 - x0) / 4, (z1 - z0) / 4)
-        raw = [(x0 + ch, z0), (x1 - ch, z0), (x1, z0 + ch), (x1, z1 - ch),
-               (x1 - ch, z1), (x0 + ch, z1), (x0, z1 - ch), (x0, z0 + ch)]
-        pts = []
-        for k, (px, pz) in enumerate(raw):
-            jx = (seeded('jx%d_%d_%d' % (i0, j0, k)) - 0.5) * 0.5
-            jz = (seeded('jz%d_%d_%d' % (i0, j0, k)) - 0.5) * 0.5
-            pts.append({'x': round(min(max(px + jx, x0), x1), 1), 'z': round(min(max(pz + jz, z0), z1), 1)})
-        out.append(dict(uid='gen_fill_%03d' % n, id='Fill_%s_%03d' % (typ.capitalize(), n), label='', kind='area',
-                        type=typ, elevation=(2 if typ == 'terrace' else 0), gen=True, pts=pts))
+            votes = defaultdict(int)
+            for (i, j) in comp:
+                for d in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+                    nb = (i + d[0], j + d[1])
+                    if nb in typ and typ[nb] != ty:
+                        votes[typ[nb]] += 1
+            if votes:
+                best = max(votes, key=votes.get)
+                for c in comp:
+                    typ[c] = best
+    regions = []
+    for ty, comp in _components(typ):
+        if len(comp) < min_cells:
+            continue
+        loop = _trace_outer(comp)
+        if not loop:
+            continue
+        ring = _rdp(loop + [loop[0]], 0.7)[:-1]
+        if len(ring) < 3:
+            continue
+        ring = chaikin_closed(ring, 2)
+        zn = max(set(zone[c] for c in comp), key=lambda z: sum(1 for c in comp if zone[c] == z))
+        regions.append((len(comp), ty, zn, ring))
+    regions.sort(key=lambda r: -r[0])                          # büyükler altta, küçükler üstte
+    out = []
+    for n, (cnt, ty, zn, ring) in enumerate(regions, 1):
+        lab = ZONE_LABELS.get(zn, '') if cnt >= 150 else ''
+        out.append(dict(uid='gen_fill_%03d' % n, id='Fill_%s_%03d' % (ty.capitalize(), n), label=lab, kind='area',
+                        type=ty, elevation=0, gen=True,
+                        pts=[{'x': round(x, 1), 'z': round(z, 1)} for x, z in thin(ring + [ring[0]], 0.08)[:-1]]))
     return out
 
 
@@ -1495,6 +1585,9 @@ def main():
     objs, W, H = load_objects(a.html)
     # önceki üretimi temizle: yollar, kapı patikaları, üretilmiş alanlar
     objs = [o for o in objs if not (o.get('gen') or (o.get('kind') == 'path' and o.get('type') in ('road', 'path')))]
+    if not any(o.get('type') == 'fountain' for o in objs):
+        objs.append(dict(uid='fountain_main', id='Village_Fountain', label='Köy çeşmesi', kind='utility',
+                         type='fountain', x=47, z=96, w=4, d=4, rot=0))
     log = []
     world = World(objs, W, H)
     apply_tweaks(world, log)
@@ -1521,7 +1614,7 @@ def main():
     gardens = make_gardens(world, net, rd, statics)
     cov1, rd = coverage_mask(world, net, statics + gardens)
     dead1 = sum(1 for v in cov1 if not v)
-    fills = fill_dead(world, net, cov1, rd)
+    fills = fill_regions(world, net, cov1)
     cov2, _ = coverage_mask(world, net, statics + gardens + fills)
     dead2 = sum(1 for v in cov2 if not v)
 
@@ -1542,7 +1635,7 @@ def main():
         for k in ('w', 'd'):
             if k in o:
                 o[k] = round(o[k], 2)
-    final = static_nonitem + gardens + fills + river + line_objs + rest
+    final = fills + static_nonitem + gardens + river + line_objs + rest
 
     export_json(a.out_json, final, W, H)
     if a.inject_html:

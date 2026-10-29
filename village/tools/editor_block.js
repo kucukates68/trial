@@ -26,7 +26,7 @@ function buildGrid(){
  const lake=objects.find(o=>o.type==='lake'&&o.pts),river=objects.find(o=>o.type==='river'&&o.pts);
  const hw=(river&&river.strokeW||12)/2+0.6;
  for(let j=0;j<H;j++)for(let i=0;i<W;i++){const x=i+.5,z=j+.5;let w=false;if(lake&&inPoly(x,z,lake.pts))w=true;else if(river){const p=river.pts;for(let k=0;k<p.length-1;k++){if(segClosest(x,z,p[k].x,p[k].z,p[k+1].x,p[k+1].z).d<hw){w=true;break}}}if(w)blk[j*W+i]=1}
- for(const o of objects.filter(isItem)){const r=Math.hypot(o.w,o.d)/2+3,m=isParcel(o)?0.2:ROUTE.buf;for(let j=Math.max(0,Math.floor(o.z-r));j<Math.min(H,Math.ceil(o.z+r));j++)for(let i=Math.max(0,Math.floor(o.x-r));i<Math.min(W,Math.ceil(o.x+r));i++){const d=rectDist(o,i+.5,j+.5),idx=j*W+i;if(d<m)blk[idx]=1;else if(d<3&&!isParcel(o))soft[idx]+=(3-d)*.4}}
+ for(const o of objects.filter(o=>isItem(o)||o.type==='fountain')){const r=Math.hypot(o.w,o.d)/2+3,m=isParcel(o)?0.2:ROUTE.buf;for(let j=Math.max(0,Math.floor(o.z-r));j<Math.min(H,Math.ceil(o.z+r));j++)for(let i=Math.max(0,Math.floor(o.x-r));i<Math.min(W,Math.ceil(o.x+r));i++){const d=rectDist(o,i+.5,j+.5),idx=j*W+i;if(d<m)blk[idx]=1;else if(d<3&&!isParcel(o))soft[idx]+=(3-d)*.4}}
  for(const o of objects.filter(o=>o.kind==='utility'&&(o.type==='bridge'||o.type==='pier'))){const ob=o.type==='bridge'?{...o,w:o.w+2*ROUTE.ramp}:o,r=Math.hypot(ob.w,ob.d)/2+1;for(let j=Math.max(0,Math.floor(o.z-r));j<Math.min(H,Math.ceil(o.z+r));j++)for(let i=Math.max(0,Math.floor(o.x-r));i<Math.min(W,Math.ceil(o.x+r));i++)if(rectDist(ob,i+.5,j+.5)<=0){blk[j*W+i]=0;soft[j*W+i]=.7}}
  return {blk,soft,W,H};
 }
